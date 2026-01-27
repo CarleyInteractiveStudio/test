@@ -2,6 +2,7 @@ const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 
+// En Hugging Face, /app suele ser el directorio de trabajo
 const QUEUE_FILE = path.join(__dirname, 'queue.json');
 const RESULTS_DIR = path.join(__dirname, 'results');
 
@@ -37,7 +38,7 @@ class QueueManager {
     }
 
     async ensureInitialized() {
-        await this.initPromise;
+        if (!this.initialized) await this.initPromise;
     }
 
     async save() {
@@ -57,7 +58,7 @@ class QueueManager {
         await this.ensureInitialized();
         const job = {
             id: uuidv4(),
-            frameCount,
+            frameCount: parseInt(frameCount) || 1,
             status: 'queued',
             type: 'normal',
             joinedAt: Date.now(),
@@ -71,8 +72,9 @@ class QueueManager {
 
     async applyPriority(id, code) {
         await this.ensureInitialized();
+        // Puedes cambiar este código por el que prefieras
         if (code !== 'VIDSPRI_VIP') {
-            return { success: false, message: 'Invalid priority code' };
+            return { success: false, message: 'Código prioritario inválido' };
         }
 
         const index = this.normalQueue.findIndex(j => j.id === id);
@@ -91,17 +93,16 @@ class QueueManager {
         }
 
         if (this.priorityQueue.some(j => j.id === id)) {
-            return { success: true, message: 'Already priority' };
+            return { success: true, message: 'Ya eres prioritario' };
         }
 
-        return { success: false, message: 'Job not found' };
+        return { success: false, message: 'Solicitud no encontrada' };
     }
 
     async getQueueStatus(id) {
         await this.ensureInitialized();
         await this.checkTimeout();
 
-        // Check if it's the current job
         if (this.currentJob && this.currentJob.id === id) {
             this.currentJob.lastHeartbeat = Date.now();
             return {
@@ -112,7 +113,6 @@ class QueueManager {
             };
         }
 
-        // Check if it's already completed and results are on disk
         const resultFile = path.join(RESULTS_DIR, `${id}.json`);
         if (await fs.pathExists(resultFile)) {
             const resultData = await fs.readJson(resultFile);
@@ -125,8 +125,6 @@ class QueueManager {
             };
         }
 
-        // Check if it's a failed job (we could also save failure to disk, but for now...)
-        // We'll look in combined queue
         const combined = this.getCombinedQueue();
         const index = combined.findIndex(j => j.id === id);
 
@@ -167,17 +165,17 @@ class QueueManager {
     async checkTimeout() {
         let changed = false;
         const now = Date.now();
-        const timeout = 10000; // 10 seconds for turn signals
+        const timeout = 10000; // 10 segundos de inactividad permitidos cuando es su turno
 
         if (this.currentJob && this.currentJob.status === 'your_turn') {
             if (now - this.currentJob.lastHeartbeat > timeout) {
-                console.log(`Job ${this.currentJob.id} timed out waiting for signal`);
+                console.log(`Job ${this.currentJob.id} eliminado por inactividad (10s)`);
                 this.currentJob = null;
                 changed = true;
             }
         }
 
-        const queueTimeout = 30000;
+        const queueTimeout = 30000; // 30s para gente en la fila general
         const filterFn = j => {
             if (now - j.lastHeartbeat > queueTimeout) {
                 changed = true;
@@ -233,7 +231,6 @@ class QueueManager {
     async completeJob(id, results) {
         await this.ensureInitialized();
         if (this.currentJob && this.currentJob.id === id) {
-            // Save results to disk
             const resultData = {
                 id: this.currentJob.id,
                 frameCount: this.currentJob.frameCount,
@@ -242,7 +239,6 @@ class QueueManager {
             };
             await fs.writeJson(path.join(RESULTS_DIR, `${id}.json`), resultData);
 
-            // Advance queue immediately
             this.currentJob = null;
             await this.advanceQueue();
             await this.save();
@@ -265,9 +261,8 @@ class QueueManager {
         await this.checkTimeout();
 
         const now = Date.now();
-        const maxAge = 15 * 60 * 1000;
+        const maxAge = 15 * 60 * 1000; // 15 minutos de vida máxima para cualquier dato
 
-        // Cleanup queues
         const filterOld = j => (now - j.joinedAt < maxAge);
         let changed = false;
         const oldLen = this.normalQueue.length + this.priorityQueue.length;
@@ -281,7 +276,6 @@ class QueueManager {
             await this.save();
         }
 
-        // Cleanup results dir
         try {
             const files = await fs.readdir(RESULTS_DIR);
             for (const file of files) {
@@ -292,7 +286,7 @@ class QueueManager {
                 }
             }
         } catch (err) {
-            console.error('Error cleaning up results dir:', err);
+            console.error('Error limpiando resultados:', err);
         }
     }
 }

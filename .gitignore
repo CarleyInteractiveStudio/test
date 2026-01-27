@@ -1,4 +1,5 @@
 node_modules
 queue.json
 results/
+uploads/
 *.log
