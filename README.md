@@ -1,3 +1,13 @@
+---
+title: VidSpri Secretario
+emoji: 🚀
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # VidSpri Secretario
 
 Servidor de gestión de filas optimizado para Hugging Face (Plan Gratuito).
@@ -5,40 +15,29 @@ Servidor de gestión de filas optimizado para Hugging Face (Plan Gratuito).
 ## Características
 
 - **Lógica 2N + 1P**: Atiende a 2 usuarios normales por cada 1 usuario prioritario.
-- **Optimización de Memoria**: Las imágenes se procesan una por una y solo cuando es el turno del usuario.
+- **Optimización de Memoria**: Las imágenes se procesan una por una y se guardan temporalmente en disco.
 - **Persistencia**: Estado de la fila guardado en `queue.json`.
-- **Auto-Limpieza**: Los usuarios inactivos o con más de 15 minutos en el sistema son eliminados automáticamente.
-- **Tiempo de Respuesta**: 10 segundos para dar señales de vida cuando es su turno.
+- **Auto-Limpieza**: Los archivos y usuarios inactivos se eliminan automáticamente después de 15 minutos.
+- **Seguridad**: Solo el usuario en turno puede subir datos.
 
-## Endpoints
+## Endpoints para la App
 
-### 1. Iniciar/Unirse a la Fila
+### 1. Unirse a la Fila
 `POST /remove-background/`
-- **Body**: `frameCount` (opcional, número de fotos).
-- **Retorna**: `job_id`, `status`, `queue_position`.
+- Envía un `frameCount` opcional.
+- Recibes un `job_id` y tu `queue_position`.
 
-### 2. Verificar Estado
+### 2. Consultar Estado
 `GET /status/:job_id`
-- **Retorna**: `status`, `queue_position`.
-- Si `status` es `your_turn`, el cliente debe proceder a subir las imágenes.
-- Si `status` es `processing`, retorna `completed_frames` y `total_frames`.
-- Si `status` is `completed`, retorna el array `frames` con las imágenes en Base64.
+- Revisa si es tu turno (`your_turn`) o si está procesando (`processing`).
 
-### 3. Aplicar Código de Prioridad
-`POST /apply-code`
-- **Body**: `job_id`, `code`.
-- **Código VIP**: `VIDSPRI_VIP`
-
-### 4. Subir Imágenes
+### 3. Subir Imágenes
 `POST /upload/:job_id`
-- **Multipart**: `images` (array de archivos).
-- Solo funciona si es el turno del usuario.
+- Sube las imágenes solo cuando sea tu turno.
 
-## Instalación en Hugging Face Spaces
-
-1. Crea un nuevo Space de tipo **Docker**.
-2. Sube los archivos: `Dockerfile`, `index.js`, `queueManager.js`, `package.json`.
-3. El Space se iniciará automáticamente.
+### 4. Volverse Prioritario
+`POST /apply-code`
+- Envía `job_id` y el código `VIDSPRI_VIP`.
 
 ---
-Desarrollado para Carley Interactive Studio.
+Configurado para **Hugging Face Spaces**.

@@ -10,6 +10,9 @@ const fs = require('fs-extra');
 const app = express();
 const port = process.env.PORT || 7860;
 
+// Confiar en el proxy de Hugging Face para obtener IPs correctas si es necesario
+app.set('trust proxy', 1);
+
 // Configuración de almacenamiento en disco para optimizar RAM
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 fs.ensureDirSync(UPLOADS_DIR);
@@ -135,6 +138,6 @@ setInterval(() => {
     queueManager.cleanup();
 }, 5 * 60 * 1000);
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
     console.log(`Servidor Secretario corriendo en puerto ${port}`);
 });
