@@ -10,6 +10,7 @@ const fs = require('fs-extra');
 
 const app = express();
 const port = process.env.PORT || 7860;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'VIDSPRI_ADMIN_2026';
 
 // Confiar en el proxy de Hugging Face para obtener IPs correctas si es necesario
 app.set('trust proxy', 1);
@@ -28,7 +29,10 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password']
+}));
 app.use(express.json());
 
 // Servidor Especialista (el que procesa las fotos)
@@ -82,8 +86,18 @@ app.post('/apply-code', multer().none(), async (req, res) => {
     res.json({ ...result, new_queue_position: status.position });
 });
 
+// Middleware de seguridad para admin
+const adminAuth = (req, res, next) => {
+    const password = req.headers['x-admin-password'];
+    if (password === ADMIN_PASSWORD) {
+        next();
+    } else {
+        res.status(401).json({ error: 'No autorizado: Contraseña de admin incorrecta' });
+    }
+};
+
 // Admin: Crear códigos
-app.post('/admin/create-code', multer().none(), async (req, res) => {
+app.post('/admin/create-code', adminAuth, multer().none(), async (req, res) => {
     const { code, maxUses, expiresAt, cooldown } = req.body;
     if (!code) return res.status(400).json({ error: 'code es requerido' });
 
@@ -101,7 +115,7 @@ app.post('/admin/create-code', multer().none(), async (req, res) => {
 });
 
 // Admin: Ver todos los códigos
-app.get('/admin/codes', async (req, res) => {
+app.get('/admin/codes', adminAuth, async (req, res) => {
     const codes = await codeManager.getAllCodes();
     res.json(codes);
 });

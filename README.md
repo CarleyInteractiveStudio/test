@@ -40,13 +40,16 @@ Servidor de gestión de filas optimizado para Hugging Face (Plan Gratuito).
 - Envía `job_id` y el código (ej. `TEST1`).
 - Los códigos pueden tener límites de uso, fecha de expiración y tiempo de espera entre usos (cooldown).
 
-### 5. Administración de Códigos
-`POST /admin/create-code`
-- **Body**: `code`, `maxUses`, `expiresAt` (timestamp ms), `cooldown` (segundos).
-- Crea un nuevo código con reglas personalizadas.
+### 5. Administración de Códigos (App Local)
+Para gestionar los códigos de prioridad sin entrar al servidor, utiliza el archivo `admin_app.html`:
+1. Descarga el archivo `admin_app.html` a tu computadora.
+2. Ábrelo con cualquier navegador (Chrome, Edge, etc.).
+3. Ingresa la URL de tu Space de Hugging Face y la contraseña de administrador.
+4. Podrás crear nuevos códigos con límites de uso, expiración y cooldown.
 
-`GET /admin/codes`
-- Lista todos los códigos y sus estadísticas de uso.
+**Seguridad**:
+- Los endpoints de administración están protegidos por el header `x-admin-password`.
+- La contraseña por defecto es `VIDSPRI_ADMIN_2026`. Puedes cambiarla en `index.js` (variable `ADMIN_PASSWORD`).
 
 ---
 Configurado para **Hugging Face Spaces**.

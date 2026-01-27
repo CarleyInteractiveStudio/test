@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidSpri Admin Dashboard</title>
+    <style>
+        :root {
+            --primary: #6200ee;
+            --secondary: #03dac6;
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --text: #ffffff;
+            --error: #cf6679;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .card {
+            background-color: var(--surface);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        h1, h2 {
+            color: var(--secondary);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            background-color: #2c2c2c;
+            color: white;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--primary);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button.secondary {
+            background-color: var(--secondary);
+            color: black;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #333;
+        }
+        th {
+            background-color: #252525;
+            color: var(--secondary);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            display: none;
+        }
+        .status.error {
+            background-color: var(--error);
+            display: block;
+        }
+        .status.success {
+            background-color: #4caf50;
+            display: block;
+        }
+        .refresh-btn {
+            float: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VidSpri Admin Dashboard</h1>
+
+        <div class="card">
+            <h2>Configuración de Conexión</h2>
+            <div class="form-group">
+                <label>URL del Servidor (Hugging Face Space):</label>
+                <input type="text" id="serverUrl" placeholder="https://tu-usuario-vidspri-secretario.hf.space" value="">
+            </div>
+            <div class="form-group">
+                <label>Contraseña de Admin:</label>
+                <input type="password" id="adminPassword" value="VIDSPRI_ADMIN_2026">
+            </div>
+            <p style="font-size: 0.8em; color: #888;">* La contraseña por defecto es VIDSPRI_ADMIN_2026. Cámbiala en index.js si es necesario.</p>
+        </div>
+
+        <div id="statusMsg" class="status"></div>
+
+        <div class="card">
+            <h2>Crear Nuevo Código</h2>
+            <div class="form-group">
+                <label>Código:</label>
+                <input type="text" id="newCode" placeholder="Ej: VIP2026">
+            </div>
+            <div class="form-group">
+                <label>Máximo de Usos:</label>
+                <input type="number" id="maxUses" value="10">
+            </div>
+            <div class="form-group">
+                <label>Cooldown (Segundos entre usos):</label>
+                <input type="number" id="cooldown" value="0">
+            </div>
+            <div class="form-group">
+                <label>Expira en (Días):</label>
+                <input type="number" id="expiresInDays" value="7">
+            </div>
+            <button onclick="createCode()">Crear Código</button>
+        </div>
+
+        <div class="card">
+            <button class="secondary refresh-btn" onclick="fetchCodes()">Actualizar Lista</button>
+            <h2>Códigos Existentes</h2>
+            <table id="codesTable">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Usos</th>
+                        <th>Máx Usos</th>
+                        <th>Cooldown</th>
+                        <th>Expira</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Se llena con JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Cargar URL guardada si existe
+        document.getElementById('serverUrl').value = localStorage.getItem('vidspri_server_url') || '';
+        document.getElementById('adminPassword').value = localStorage.getItem('vidspri_admin_pass') || 'VIDSPRI_ADMIN_2026';
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('statusMsg');
+            el.textContent = msg;
+            el.className = 'status ' + type;
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        async function fetchCodes() {
+            const url = document.getElementById('serverUrl').value.replace(/\/$/, '');
+            const pass = document.getElementById('adminPassword').value;
+
+            if (!url) {
+                showStatus('Por favor, ingresa la URL del servidor.', 'error');
+                return;
+            }
+
+            localStorage.setItem('vidspri_server_url', url);
+            localStorage.setItem('vidspri_admin_pass', pass);
+
+            try {
+                const res = await fetch(`${url}/admin/codes`, {
+                    headers: { 'x-admin-password': pass }
+                });
+
+                if (!res.ok) throw new Error(await res.text() || 'Error al obtener códigos');
+
+                const codes = await res.json();
+                renderTable(codes);
+            } catch (err) {
+                showStatus(err.message, 'error');
+            }
+        }
+
+        function renderTable(codes) {
+            const tbody = document.querySelector('#codesTable tbody');
+            tbody.innerHTML = '';
+            codes.forEach(c => {
+                const row = document.createElement('tr');
+                const expiryDate = new Date(c.expiresAt).toLocaleString();
+                row.innerHTML = `
+                    <td><strong>${c.code}</strong></td>
+                    <td>${c.uses}</td>
+                    <td>${c.maxUses}</td>
+                    <td>${c.cooldown}s</td>
+                    <td style="font-size: 0.8em">${expiryDate}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function createCode() {
+            const url = document.getElementById('serverUrl').value.replace(/\/$/, '');
+            const pass = document.getElementById('adminPassword').value;
+
+            const code = document.getElementById('newCode').value.trim();
+            const maxUses = document.getElementById('maxUses').value;
+            const cooldown = document.getElementById('cooldown').value;
+            const days = document.getElementById('expiresInDays').value;
+
+            if (!code) {
+                showStatus('El código es requerido.', 'error');
+                return;
+            }
+
+            const expiresAt = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+            try {
+                const formData = new FormData();
+                formData.append('code', code);
+                formData.append('maxUses', maxUses);
+                formData.append('cooldown', cooldown);
+                formData.append('expiresAt', expiresAt);
+
+                const res = await fetch(`${url}/admin/create-code`, {
+                    method: 'POST',
+                    headers: { 'x-admin-password': pass },
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error(await res.text() || 'Error al crear código');
+
+                showStatus('Código creado con éxito', 'success');
+                document.getElementById('newCode').value = '';
+                fetchCodes();
+            } catch (err) {
+                showStatus(err.message, 'error');
+            }
+        }
+
+        // Cargar al inicio si hay URL
+        if (document.getElementById('serverUrl').value) {
+            fetchCodes();
+        }
+    </script>
+</body>
+</html>
