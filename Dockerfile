@@ -6,29 +6,26 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Crear usuario con ID 1000 (estándar de HF)
-RUN useradd -m -u 1000 user
-ENV HOME=/home/user \
-    PATH=/home/user/.local/bin:$PATH
+# En las imágenes oficiales de Node, el usuario 'node' ya tiene el UID 1000.
+# Hugging Face requiere un usuario con UID 1000.
+USER node
+ENV HOME=/home/node \
+    PATH=/home/node/.local/bin:$PATH
 
 WORKDIR $HOME/app
 
 # Copiar package.json primero para aprovechar el cache de Docker
-COPY --chown=user:user package*.json ./
+COPY --chown=node:node package*.json ./
 RUN npm install
 
-# Copiar el resto del código
-COPY --chown=user:user . .
+# Copiar el resto del código con los permisos correctos
+COPY --chown=node:node . .
 
-# Crear y dar permisos a los directorios de datos
-RUN mkdir -p results uploads && \
-    chown -R user:user $HOME/app && \
-    chmod -R 777 results uploads
+# Crear directorios para datos y asegurar permisos
+# Nota: Como usuario 'node', ya tenemos permisos en nuestro HOME
+RUN mkdir -p results uploads
 
-# Cambiar al usuario no-root
-USER user
-
-# Hugging Face Spaces usa el puerto 7860
+# HF Spaces usa el puerto 7860
 EXPOSE 7860
 ENV PORT=7860
 
