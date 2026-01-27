@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const queueManager = require('./queueManager');
+const codeManager = require('./codeManager');
 const axios = require('axios');
 const FormData = require('form-data');
 const path = require('path');
@@ -63,12 +64,46 @@ app.post('/apply-code', multer().none(), async (req, res) => {
     if (!job_id || !code) {
         return res.status(400).json({ error: 'job_id y code son requeridos' });
     }
-    const result = await queueManager.applyPriority(job_id, code);
+
+    // Validar el código avanzado
+    const validation = await codeManager.validateAndUse(code);
+    if (!validation.valid) {
+        return res.status(400).json({ success: false, message: validation.message });
+    }
+
+    // Si el código es válido, aplicamos la prioridad al job (usando un código interno que el queueManager reconozca o simplemente forzando la prioridad)
+    // El queueManager actualmente espera 'VIDSPRI_VIP'. Lo mantenemos como el código maestro interno.
+    const result = await queueManager.applyPriority(job_id, 'VIDSPRI_VIP');
     if (!result.success) {
         return res.status(400).json(result);
     }
+
     const status = await queueManager.getQueueStatus(job_id);
     res.json({ ...result, new_queue_position: status.position });
+});
+
+// Admin: Crear códigos
+app.post('/admin/create-code', multer().none(), async (req, res) => {
+    const { code, maxUses, expiresAt, cooldown } = req.body;
+    if (!code) return res.status(400).json({ error: 'code es requerido' });
+
+    try {
+        const newCode = await codeManager.createCode({
+            code,
+            maxUses,
+            expiresAt,
+            cooldown
+        });
+        res.json({ success: true, code: newCode });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: Ver todos los códigos
+app.get('/admin/codes', async (req, res) => {
+    const codes = await codeManager.getAllCodes();
+    res.json(codes);
 });
 
 // Paso 3: Subir imágenes (solo cuando status sea 'your_turn')

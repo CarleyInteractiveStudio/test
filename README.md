@@ -37,7 +37,16 @@ Servidor de gestión de filas optimizado para Hugging Face (Plan Gratuito).
 
 ### 4. Volverse Prioritario
 `POST /apply-code`
-- Envía `job_id` y el código `VIDSPRI_VIP`.
+- Envía `job_id` y el código (ej. `TEST1`).
+- Los códigos pueden tener límites de uso, fecha de expiración y tiempo de espera entre usos (cooldown).
+
+### 5. Administración de Códigos
+`POST /admin/create-code`
+- **Body**: `code`, `maxUses`, `expiresAt` (timestamp ms), `cooldown` (segundos).
+- Crea un nuevo código con reglas personalizadas.
+
+`GET /admin/codes`
+- Lista todos los códigos y sus estadísticas de uso.
 
 ---
 Configurado para **Hugging Face Spaces**.
