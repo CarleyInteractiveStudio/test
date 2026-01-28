@@ -41,8 +41,8 @@ Servidor de gestión de filas optimizado para Hugging Face (Plan Gratuito).
 - Los códigos pueden tener límites de uso, fecha de expiración y tiempo de espera entre usos (cooldown).
 
 ### 5. Administración de Códigos (App Local)
-Para gestionar los códigos de prioridad sin entrar al servidor, utiliza el archivo `admin_app.html`:
-1. Descarga el archivo `admin_app.html` a tu computadora.
+Para gestionar los códigos de prioridad sin entrar al servidor, utiliza el archivo que se encuentra en la carpeta `admin/`:
+1. Descarga el archivo `admin/admin_app.html` a tu computadora.
 2. Ábrelo con cualquier navegador (Chrome, Edge, etc.).
 3. Ingresa la URL de tu Space de Hugging Face y la contraseña de administrador.
 4. Podrás crear nuevos códigos con límites de uso, expiración y cooldown.

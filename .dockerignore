@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+queue.json
+codes.json
+results/
+uploads/
+admin/
+.git
+.gitignore

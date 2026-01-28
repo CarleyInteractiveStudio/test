@@ -1,7 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 
-const CODES_FILE = path.join(__dirname, 'codes.json');
+const CODES_FILE = path.join(__dirname, '..', 'codes.json');
 
 class CodeManager {
     constructor() {

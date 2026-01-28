@@ -16,7 +16,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'VIDSPRI_ADMIN_2026';
 app.set('trust proxy', 1);
 
 // Configuración de almacenamiento en disco para optimizar RAM
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
 fs.ensureDirSync(UPLOADS_DIR);
 
 const storage = multer.diskStorage({

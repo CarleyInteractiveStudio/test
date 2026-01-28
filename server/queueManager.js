@@ -3,8 +3,8 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 
 // En Hugging Face, /app suele ser el directorio de trabajo
-const QUEUE_FILE = path.join(__dirname, 'queue.json');
-const RESULTS_DIR = path.join(__dirname, 'results');
+const QUEUE_FILE = path.join(__dirname, '..', 'queue.json');
+const RESULTS_DIR = path.join(__dirname, '..', 'results');
 
 class QueueManager {
     constructor() {
