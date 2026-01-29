@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.use(cors({
-    origin: '*',
+    origin: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password']
 }));
 app.use(express.json());
@@ -182,10 +182,10 @@ async function processImagesSequentially(jobId, files) {
     }
 }
 
-// Limpieza cada 5 minutos
+// Limpieza cada 5 minutos (300000 ms)
 setInterval(() => {
     queueManager.cleanup();
-}, 5 * 60 * 1000);
+}, 300000);
 
 app.listen(port, '0.0.0.0', () => {
     console.log(`Servidor Secretario corriendo en puerto ${port}`);

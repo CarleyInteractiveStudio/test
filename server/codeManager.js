@@ -16,12 +16,12 @@ class CodeManager {
                 this.codes = await fs.readJson(CODES_FILE);
             } else {
                 this.codes = {};
-                // Código VIP por defecto para no romper lo anterior inicialmente
+                // Código VIP por defecto
                 this.codes['VIDSPRI_VIP'] = {
                     code: 'VIDSPRI_VIP',
                     maxUses: 999999,
                     uses: 0,
-                    expiresAt: Date.now() + (100 * 365 * 24 * 60 * 60 * 1000), // 100 años
+                    expiresAt: Date.now() + 3153600000000, // 100 años
                     cooldown: 0,
                     lastUsedAt: 0
                 };
@@ -52,7 +52,7 @@ class CodeManager {
             code,
             maxUses: parseInt(maxUses) || 1,
             uses: 0,
-            expiresAt: parseInt(expiresAt) || (Date.now() + 24 * 60 * 60 * 1000), // 1 día defecto
+            expiresAt: parseInt(expiresAt) || (Date.now() + 86400000), // 1 día defecto
             cooldown: parseInt(cooldown) || 0, // Segundos
             lastUsedAt: 0
         };

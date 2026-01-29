@@ -261,7 +261,7 @@ class QueueManager {
         await this.checkTimeout();
 
         const now = Date.now();
-        const maxAge = 15 * 60 * 1000; // 15 minutos de vida máxima para cualquier dato
+        const maxAge = 900000; // 15 minutos (900000 ms) de vida máxima para cualquier dato
 
         const filterOld = j => (now - j.joinedAt < maxAge);
         let changed = false;
