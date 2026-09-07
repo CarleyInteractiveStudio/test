@@ -684,6 +684,10 @@ loadingManager.onLoad = () => {
     if (loaderStatus) loaderStatus.textContent = '¡Todo listo para Ana! ❤️';
     isExperienceReady = true;
     if (startBtn) startBtn.classList.remove('hidden');
+    // Automatically start experience when loading completes
+    setTimeout(() => {
+        startExperience();
+    }, 400);
 };
 
 loadingManager.onError = (url) => {
