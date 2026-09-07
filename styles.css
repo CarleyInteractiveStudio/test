@@ -9,12 +9,73 @@ html, body {
     height: 100%;
     overflow: hidden;
     background-color: #000000;
-    font-family: 'Great Vibes', cursive, sans-serif;
+    font-family: 'Montserrat', sans-serif;
+    color: #ffffff;
 }
 
-canvas {
-    display: block;
+#canvas2d {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100vw;
     height: 100vh;
+    z-index: 2;
+    pointer-events: none;
+    transition: opacity 2s ease-in-out;
+}
+
+#canvas3d-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
     background-color: #000000;
+}
+
+#caption-container {
+    position: absolute;
+    bottom: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    width: 90%;
+    max-width: 850px;
+    padding: 20px 30px;
+    background: rgba(15, 5, 20, 0.65);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 105, 180, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 0 30px rgba(255, 0, 100, 0.25), inset 0 0 15px rgba(255, 255, 255, 0.05);
+    text-align: center;
+    transition: opacity 1.2s ease, transform 1.2s ease;
+    opacity: 1;
+}
+
+#caption-container.hidden {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+    pointer-events: none;
+}
+
+#caption-text {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    line-height: 1.6;
+    color: #fff0f5;
+    text-shadow: 0 0 10px rgba(255, 105, 180, 0.8), 0 0 20px rgba(255, 20, 147, 0.5);
+}
+
+@media (max-width: 768px) {
+    #caption-text {
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+    }
+    #caption-container {
+        padding: 15px 20px;
+        bottom: 5%;
+    }
 }
