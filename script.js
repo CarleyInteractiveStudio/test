@@ -109,7 +109,7 @@ let anaTargets = [];
 function sampleTextTargets(text, fontSize) {
     const targets = [];
     const offCanvas = document.createElement('canvas');
-    offCanvas.width = 700;
+    offCanvas.width = 800;
     offCanvas.height = 300;
     const offCtx = offCanvas.getContext('2d');
 
@@ -122,11 +122,11 @@ function sampleTextTargets(text, fontSize) {
     const imgData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
     const data = imgData.data;
 
-    const step = width < 800 ? 3 : 4;
+    const step = width < 800 ? 5 : 6;
     for (let y = 0; y < offCanvas.height; y += step) {
         for (let x = 0; x < offCanvas.width; x += step) {
             const index = (y * offCanvas.width + x) * 4;
-            if (data[index + 3] > 128) {
+            if (data[index + 3] > 140) {
                 targets.push({
                     x: centerX + (x - offCanvas.width / 2),
                     y: centerY + (y - offCanvas.height / 2)
@@ -142,22 +142,23 @@ function initTextTargets() {
     anaTargets = sampleTextTargets('ANA', width < 800 ? 110 : 150);
 }
 
-// Morph Particle
+// Light Particle forming light beams & glowing text
 class MorphParticle {
     constructor(startX, startY) {
         this.x = startX;
         this.y = startY;
-        this.size = Math.random() * 2 + 1.2;
-        this.color = `hsl(${Math.random() * 50 + 330}, 100%, 75%)`;
+        this.size = Math.random() * 1.5 + 1.0;
+        this.hue = Math.random() * 50 + 325; // Pink, gold, cyan light streaks
         this.angle = Math.random() * Math.PI * 2;
-        this.radius = Math.random() * 120 + 30;
-        this.speed = Math.random() * 0.03 + 0.01;
+        this.radius = Math.random() * 200 + 50;
+        this.speed = Math.random() * 0.04 + 0.02;
+        this.trail = [];
     }
 
     update(target, morphProgress) {
         this.angle += this.speed;
-        const orbitX = centerX + Math.cos(this.angle) * this.radius;
-        const orbitY = centerY + Math.sin(this.angle) * this.radius;
+        const orbitX = rightX + Math.cos(this.angle) * this.radius;
+        const orbitY = centerY + Math.sin(this.angle) * (this.radius * 0.6);
 
         if (target) {
             this.x = orbitX * (1 - morphProgress) + target.x * morphProgress;
@@ -166,16 +167,33 @@ class MorphParticle {
             this.x = orbitX;
             this.y = orbitY;
         }
+
+        this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > 3) this.trail.shift();
     }
 
     draw(ctx) {
         ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+
+        // Light beam streak
+        if (this.trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(this.trail[0].x, this.trail[0].y);
+            for (let i = 1; i < this.trail.length; i++) {
+                ctx.lineTo(this.trail[i].x, this.trail[i].y);
+            }
+            ctx.strokeStyle = `hsla(${this.hue}, 100%, 70%, 0.5)`;
+            ctx.lineWidth = this.size;
+            ctx.stroke();
+        }
+
+        // Glowing light point
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.shadowColor = '#ff66b2';
-        ctx.shadowBlur = 8;
+        ctx.arc(this.x, this.y, this.size * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 100%, 75%, 0.9)`;
         ctx.fill();
+
         ctx.restore();
     }
 }
@@ -265,12 +283,20 @@ function init3D() {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     container.appendChild(renderer.domElement);
 
-    // Ambient & Point Lights
-    const ambientLight = new THREE.AmbientLight(0x333333);
+    // Ambient & Directional Bright Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.PointLight(0xffffff, 2.5, 1000);
+    const sunLight = new THREE.PointLight(0xffffff, 3.5, 1500);
     scene.add(sunLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
+    dirLight1.position.set(50, 100, 80);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0xff88aa, 1.0);
+    dirLight2.position.set(-50, -50, -50);
+    scene.add(dirLight2);
 
     // Starfield background
     createStarfield();
@@ -321,28 +347,29 @@ function createSolarSystem(sunLight) {
 
     // Earth
     const earthGeo = new THREE.SphereGeometry(3.5, 32, 32);
-    const earthMat = new THREE.MeshPhongMaterial({
-        color: 0x2233ff,
-        emissive: 0x112255,
-        shininess: 25
+    const earthMat = new THREE.MeshStandardMaterial({
+        color: 0x1d70b8,
+        emissive: 0x0a2540,
+        roughness: 0.3,
+        metalness: 0.1
     });
     earthMesh = new THREE.Mesh(earthGeo, earthMat);
     earthMesh.position.set(55, 0, 0);
     scene.add(earthMesh);
 
     // Earth Atmosphere
-    const earthAtmoGeo = new THREE.SphereGeometry(3.8, 32, 32);
+    const earthAtmoGeo = new THREE.SphereGeometry(3.9, 32, 32);
     const earthAtmoMat = new THREE.MeshBasicMaterial({
-        color: 0x00aaff,
+        color: 0x33bbff,
         transparent: true,
-        opacity: 0.3,
+        opacity: 0.5,
         side: THREE.BackSide
     });
     earthMesh.add(new THREE.Mesh(earthAtmoGeo, earthAtmoMat));
 
     // Moon
     const moonGeo = new THREE.SphereGeometry(1, 16, 16);
-    const moonMat = new THREE.MeshPhongMaterial({ color: 0xcccccc });
+    const moonMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.8 });
     moonMesh = new THREE.Mesh(moonGeo, moonMat);
     moonMesh.position.set(8, 0, 0);
     earthMesh.add(moonMesh);
@@ -358,7 +385,7 @@ function createSolarSystem(sunLight) {
 
     planetData.forEach(data => {
         const pGeo = new THREE.SphereGeometry(data.r, 24, 24);
-        const pMat = new THREE.MeshPhongMaterial({ color: data.color });
+        const pMat = new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.4 });
         const pMesh = new THREE.Mesh(pGeo, pMat);
         const pivot = new THREE.Group();
         scene.add(pivot);
@@ -387,34 +414,47 @@ function createBlackHole() {
     blackHoleCore = new THREE.Mesh(coreGeo, coreMat);
     blackHoleGroup.add(blackHoleCore);
 
-    // Glowing Gravitational Photon Ring
-    const ringGeo = new THREE.RingGeometry(12.1, 14, 64);
+    // Ultra Bright Gravitational Photon Ring
+    const ringGeo = new THREE.RingGeometry(12.1, 15, 64);
     const ringMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
+        color: 0xfff0ff,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.95
+        opacity: 1.0
     });
     const photonRing = new THREE.Mesh(ringGeo, ringMat);
     photonRing.rotation.x = Math.PI / 3;
     blackHoleGroup.add(photonRing);
 
+    // Outer Photon Glow Aura
+    const auraGeo = new THREE.RingGeometry(15, 22, 64);
+    const auraMat = new THREE.MeshBasicMaterial({
+        color: 0xff3399,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.5,
+        blending: THREE.AdditiveBlending
+    });
+    const auraRing = new THREE.Mesh(auraGeo, auraMat);
+    auraRing.rotation.x = Math.PI / 3;
+    blackHoleGroup.add(auraRing);
+
     // Swirling Gravitational Accretion Disk Particles
-    const particleCount = 4000;
+    const particleCount = 5000;
     const diskGeo = new THREE.BufferGeometry();
     const pos = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
 
     for (let i = 0; i < particleCount; i++) {
-        const radius = 14 + Math.random() * 35;
+        const radius = 14 + Math.random() * 40;
         const angle = Math.random() * Math.PI * 2;
         pos[i * 3] = Math.cos(angle) * radius;
-        pos[i * 3 + 1] = (Math.random() - 0.5) * 1.5;
+        pos[i * 3 + 1] = (Math.random() - 0.5) * 2.0;
         pos[i * 3 + 2] = Math.sin(angle) * radius;
 
-        // Orange, fiery red to neon pink gradient
+        // Bright gold, fiery orange to luminous pink gradient
         const c = new THREE.Color();
-        c.setHSL(0.9 + Math.random() * 0.15, 1.0, 0.5 + Math.random() * 0.3);
+        c.setHSL(0.85 + Math.random() * 0.25, 1.0, 0.6 + Math.random() * 0.3);
         colors[i * 3] = c.r;
         colors[i * 3 + 1] = c.g;
         colors[i * 3 + 2] = c.b;
@@ -424,10 +464,10 @@ function createBlackHole() {
     diskGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const diskMat = new THREE.PointsMaterial({
-        size: 1.8,
+        size: 2.5,
         vertexColors: true,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.95,
         blending: THREE.AdditiveBlending
     });
 
@@ -466,7 +506,7 @@ function createGalaxyAndInfinity() {
     galaxyGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const mat = new THREE.PointsMaterial({
-        size: 2.2,
+        size: 3.2,
         vertexColors: true,
         transparent: true,
         opacity: 0,
@@ -506,9 +546,13 @@ function animate(timestamp) {
     if (!startTime) startTime = timestamp;
     const elapsed = (timestamp - startTime) / 1000; // time in seconds
 
-    // --- 2D CANVAS STAGE ---
-    ctx2d.fillStyle = 'rgba(0, 0, 0, 0.18)';
-    ctx2d.fillRect(0, 0, width, height);
+    // Clear 2D canvas appropriately
+    if (elapsed > 15.5) {
+        ctx2d.clearRect(0, 0, width, height);
+    } else {
+        ctx2d.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        ctx2d.fillRect(0, 0, width, height);
+    }
 
     // 1. Heart (0.5s - 3.5s)
     if (elapsed > 0.5 && elapsed <= 3.5) {
