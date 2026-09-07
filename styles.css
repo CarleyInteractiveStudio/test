@@ -143,12 +143,12 @@ html, body {
 
 #caption-text {
     font-family: 'Cinzel', serif;
-    font-size: 1.4rem;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    line-height: 1.6;
-    color: #fff0f5;
-    text-shadow: 0 0 10px rgba(255, 105, 180, 0.8), 0 0 20px rgba(255, 20, 147, 0.5);
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    line-height: 1.7;
+    color: #fff6e5; /* Golden white tint for noble elegance */
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.9), 0 0 25px rgba(255, 105, 180, 0.7), 0 0 35px rgba(255, 20, 147, 0.5);
 }
 
 @media (max-width: 768px) {
