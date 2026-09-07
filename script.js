@@ -289,17 +289,35 @@ function createParticleTexture() {
     return new THREE.CanvasTexture(pCanvas);
 }
 
+function createGlowSpriteTexture(colorCenter, colorEdge) {
+    const gCanvas = document.createElement('canvas');
+    gCanvas.width = 256;
+    gCanvas.height = 256;
+    const gCtx = gCanvas.getContext('2d');
+
+    const grad = gCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0.0, colorCenter);
+    grad.addColorStop(0.25, colorCenter);
+    grad.addColorStop(0.65, colorEdge);
+    grad.addColorStop(1.0, 'rgba(0,0,0,0)');
+
+    gCtx.fillStyle = grad;
+    gCtx.fillRect(0, 0, 256, 256);
+
+    return new THREE.CanvasTexture(gCanvas);
+}
+
 function createAccretionDiskTexture() {
     const adCanvas = document.createElement('canvas');
     adCanvas.width = 512;
     adCanvas.height = 512;
     const adCtx = adCanvas.getContext('2d');
 
-    const grad = adCtx.createRadialGradient(256, 256, 70, 256, 256, 256);
+    const grad = adCtx.createRadialGradient(256, 256, 65, 256, 256, 256);
     grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
-    grad.addColorStop(0.1, 'rgba(255, 220, 150, 0.95)');
-    grad.addColorStop(0.35, 'rgba(255, 80, 140, 0.85)');
-    grad.addColorStop(0.7, 'rgba(180, 20, 100, 0.4)');
+    grad.addColorStop(0.12, 'rgba(255, 220, 160, 0.95)');
+    grad.addColorStop(0.35, 'rgba(255, 70, 160, 0.85)');
+    grad.addColorStop(0.7, 'rgba(190, 20, 120, 0.4)');
     grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
 
     adCtx.fillStyle = grad;
@@ -317,7 +335,8 @@ let sunMesh, earthMesh, moonMesh;
 let solarSystemGroup;
 let planetsList = [];
 
-let blackHoleGroup, accretionDiskMesh, gravitationalLensingMesh;
+let blackHoleGroup, accretionDiskMesh, gravitationalLensingMesh, lensingTopMesh, lensingBottomMesh;
+let blackHoleParticlesGroup, bhParticlesGeo, bhParticlesPositions, bhParticleData = [];
 let warpLinesGroup, warpLines = [];
 let galaxyParticles, galaxyGeometry;
 let particleTexture;
@@ -417,15 +436,16 @@ function createSolarSystem() {
     sunMesh = new THREE.Mesh(sunGeo, sunMat);
     solarSystemGroup.add(sunMesh);
 
-    // Sun Glow
-    const glowGeo = new THREE.SphereGeometry(21, 32, 32);
-    const glowMat = new THREE.MeshBasicMaterial({
-        color: 0xffaa00,
-        transparent: true,
-        opacity: 0.45,
-        side: THREE.BackSide
+    // Sun Glow - Soft radial gradient glow sprite
+    const sunGlowTex = createGlowSpriteTexture('rgba(255, 210, 120, 0.85)', 'rgba(255, 120, 0, 0.25)');
+    const sunGlowMat = new THREE.SpriteMaterial({
+        map: sunGlowTex,
+        blending: THREE.AdditiveBlending,
+        transparent: true
     });
-    sunMesh.add(new THREE.Mesh(glowGeo, glowMat));
+    const sunGlow = new THREE.Sprite(sunGlowMat);
+    sunGlow.scale.set(70, 70, 1);
+    sunMesh.add(sunGlow);
 
     // Planet Definitions with realistic textures and continuous orbit speeds
     const pData = [
@@ -483,15 +503,16 @@ function createSolarSystem() {
         if (data.isEarth) {
             earthMesh = pMesh;
 
-            // Atmosphere Glow
-            const atmoGeo = new THREE.SphereGeometry(data.r * 1.08, 32, 32);
-            const atmoMat = new THREE.MeshBasicMaterial({
-                color: 0x33b5ff,
-                transparent: true,
-                opacity: 0.35,
-                side: THREE.BackSide
+            // Atmosphere Glow - Soft radial gradient glow sprite
+            const earthGlowTex = createGlowSpriteTexture('rgba(60, 180, 255, 0.75)', 'rgba(0, 120, 255, 0.2)');
+            const atmoMat = new THREE.SpriteMaterial({
+                map: earthGlowTex,
+                blending: THREE.AdditiveBlending,
+                transparent: true
             });
-            earthMesh.add(new THREE.Mesh(atmoGeo, atmoMat));
+            const atmoSprite = new THREE.Sprite(atmoMat);
+            atmoSprite.scale.set(data.r * 3.2, data.r * 3.2, 1);
+            earthMesh.add(atmoSprite);
 
             // Moon
             const moonGeo = new THREE.SphereGeometry(1.4, 20, 20);
@@ -569,8 +590,8 @@ function createCinematicBlackHole() {
     const core = new THREE.Mesh(coreGeo, coreMat);
     blackHoleGroup.add(core);
 
-    // 2. Ultra Bright Photon Ring
-    const photonRingGeo = new THREE.RingGeometry(16.1, 18.0, 64);
+    // 2. Ultra Bright Photon Ring (centered)
+    const photonRingGeo = new THREE.RingGeometry(16.1, 18.5, 64);
     const photonRingMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -580,9 +601,9 @@ function createCinematicBlackHole() {
     const photonRing = new THREE.Mesh(photonRingGeo, photonRingMat);
     blackHoleGroup.add(photonRing);
 
-    // 3. Volumetric Accretion Disk
+    // 3. Volumetric Accretion Disk (Horizontal - Centered)
     const diskTex = createAccretionDiskTexture();
-    const diskGeo = new THREE.PlaneGeometry(110, 110);
+    const diskGeo = new THREE.PlaneGeometry(120, 120);
     const diskMat = new THREE.MeshBasicMaterial({
         map: diskTex,
         side: THREE.DoubleSide,
@@ -592,68 +613,109 @@ function createCinematicBlackHole() {
     });
 
     accretionDiskMesh = new THREE.Mesh(diskGeo, diskMat);
-    accretionDiskMesh.rotation.x = Math.PI / 2.3;
+    accretionDiskMesh.rotation.x = Math.PI / 2;
     blackHoleGroup.add(accretionDiskMesh);
 
-    // 4. Vertical Gravitational Lensing Halo Arc
-    const lensingGeo = new THREE.PlaneGeometry(95, 95);
+    // 4. Lensed Halo Ring (Over and Under the Event Horizon - Gargantua Lensing)
+    const lensingGeo = new THREE.RingGeometry(18, 55, 64);
     const lensingMat = new THREE.MeshBasicMaterial({
         map: diskTex,
         side: THREE.DoubleSide,
         transparent: true,
         blending: THREE.AdditiveBlending,
-        depthWrite: false
+        depthWrite: false,
+        opacity: 0.85
     });
 
-    gravitationalLensingMesh = new THREE.Mesh(lensingGeo, lensingMat);
-    gravitationalLensingMesh.rotation.y = Math.PI / 6;
-    blackHoleGroup.add(gravitationalLensingMesh);
+    lensingTopMesh = new THREE.Mesh(lensingGeo, lensingMat);
+    lensingTopMesh.rotation.x = 0; // Front facing lens ring warping over top
+    blackHoleGroup.add(lensingTopMesh);
 
-    // 5. Plasma Dust Stream
-    const count = 5000;
-    const dustGeo = new THREE.BufferGeometry();
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-        const radius = 18 + Math.random() * 45;
+    // 5. Curved Dynamic Particle Stream ("Bolitas" bending around gravity)
+    const particleCount = 12000;
+    bhParticlesGeo = new THREE.BufferGeometry();
+    bhParticlesPositions = new Float32Array(particleCount * 3);
+    bhParticleData = [];
+
+    for (let i = 0; i < particleCount; i++) {
+        const radius = 17.5 + Math.random() * 50;
         const angle = Math.random() * Math.PI * 2;
-        pos[i * 3] = Math.cos(angle) * radius;
-        pos[i * 3 + 1] = (Math.random() - 0.5) * 3.0;
-        pos[i * 3 + 2] = Math.sin(angle) * radius;
+        const speed = (0.015 + Math.random() * 0.02) * (35 / radius);
+
+        // 30% of particles follow gravitational lensing curves over top/bottom!
+        const isLensed = Math.random() < 0.35;
+        const lensAngle = isLensed ? (Math.random() < 0.5 ? Math.PI * 0.4 : -Math.PI * 0.4) : 0;
+
+        bhParticleData.push({ radius, angle, speed, lensAngle, isLensed });
+
+        // Calculate 3D position
+        let x = Math.cos(angle) * radius;
+        let y = (Math.random() - 0.5) * 1.5;
+        let z = Math.sin(angle) * radius;
+
+        if (isLensed) {
+            // Bend coordinates up/down over event horizon
+            const curveFactor = Math.sin((radius - 17.5) / 50 * Math.PI);
+            y = Math.sin(angle) * (radius * 0.7) * Math.sin(lensAngle);
+            z = Math.cos(angle) * radius * 0.3;
+        }
+
+        bhParticlesPositions[i * 3] = x;
+        bhParticlesPositions[i * 3 + 1] = y;
+        bhParticlesPositions[i * 3 + 2] = z;
     }
-    dustGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const dustMat = new THREE.PointsMaterial({
-        color: 0xffaae5,
+
+    bhParticlesGeo.setAttribute('position', new THREE.BufferAttribute(bhParticlesPositions, 3));
+    const bhParticlesMat = new THREE.PointsMaterial({
+        color: 0xff88d5,
         size: 2.2,
         map: particleTexture,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.9,
         blending: THREE.AdditiveBlending,
         depthWrite: false
     });
-    const dustParticles = new THREE.Points(dustGeo, dustMat);
-    blackHoleGroup.add(dustParticles);
+
+    blackHoleParticlesGroup = new THREE.Points(bhParticlesGeo, bhParticlesMat);
+    blackHoleGroup.add(blackHoleParticlesGroup);
 
     scene.add(blackHoleGroup);
 }
 
 function createGalaxyAndInfinity() {
-    const count = 8000;
+    const count = 35000; // Ultra dense, realistic galaxy with 35,000 stars!
     galaxyGeometry = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
-        const arm = i % 2;
-        const radius = Math.random() * 140;
-        const spin = radius * 0.04;
-        const angle = (arm * Math.PI) + spin + (Math.random() - 0.5) * 0.35;
+        // 4 spiral arms + central galactic bulge + outer halo stars
+        const arm = i % 4;
+        const distRatio = Math.pow(Math.random(), 1.5);
+        const radius = distRatio * 320;
+        const spin = radius * 0.035;
+        const armOffset = (arm * Math.PI / 2);
+        const scatter = (Math.random() - 0.5) * (25 + radius * 0.15);
+        const angle = armOffset + spin + scatter * 0.02;
 
-        pos[i * 3] = Math.cos(angle) * radius;
-        pos[i * 3 + 1] = (Math.random() - 0.5) * (20 - radius * 0.1);
-        pos[i * 3 + 2] = Math.sin(angle) * radius;
+        const x = Math.cos(angle) * radius + (Math.random() - 0.5) * 8;
+        const y = (Math.random() - 0.5) * (30 - radius * 0.08);
+        const z = Math.sin(angle) * radius + (Math.random() - 0.5) * 8;
+
+        pos[i * 3] = x;
+        pos[i * 3 + 1] = y;
+        pos[i * 3 + 2] = z;
 
         const c = new THREE.Color();
-        c.setHSL(0.85 + Math.random() * 0.2, 0.95, 0.65);
+        if (radius < 40) {
+            // Bright white-gold core
+            c.setHSL(0.12, 0.9, 0.85);
+        } else {
+            // Vivid pink/magenta/purple arms
+            const hue = 0.82 + (radius / 320) * 0.18 + Math.random() * 0.05;
+            c.setHSL(hue, 0.95, 0.65);
+        }
+
         colors[i * 3] = c.r;
         colors[i * 3 + 1] = c.g;
         colors[i * 3 + 2] = c.b;
@@ -663,7 +725,7 @@ function createGalaxyAndInfinity() {
     galaxyGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const mat = new THREE.PointsMaterial({
-        size: 2.8,
+        size: 2.2,
         map: particleTexture,
         vertexColors: true,
         transparent: true,
@@ -679,11 +741,11 @@ function createGalaxyAndInfinity() {
     const infinityPos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
         const t = (i / count) * Math.PI * 2;
-        const scale = 60;
+        const scale = 75;
         const denom = 1 + Math.sin(t) * Math.sin(t);
-        const x = (scale * Math.cos(t)) / denom;
-        const y = (scale * Math.sin(t) * Math.cos(t)) / denom;
-        const z = (Math.random() - 0.5) * 12;
+        const x = (scale * Math.cos(t)) / denom + (Math.random() - 0.5) * 4;
+        const y = (scale * Math.sin(t) * Math.cos(t)) / denom + (Math.random() - 0.5) * 4;
+        const z = (Math.random() - 0.5) * 15;
 
         infinityPos[i * 3] = x;
         infinityPos[i * 3 + 1] = y;
@@ -698,6 +760,10 @@ function createGalaxyAndInfinity() {
 // ==========================================
 
 let startTime = null;
+
+window.setAnimationTime = function(targetSeconds) {
+    startTime = performance.now() - (targetSeconds * 1000);
+};
 
 function animate(timestamp) {
     if (!startTime) startTime = timestamp;
@@ -881,34 +947,57 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -1800);
         }
 
-        // Stage 5: Arrival at Black Hole (42.0s - 49.0s)
-        else if (elapsed > 42.0 && elapsed <= 49.0) {
+        // Update Black Hole particles ("bolitas") dynamically
+        if (bhParticleData.length > 0 && bhParticlesPositions) {
+            for (let i = 0; i < bhParticleData.length; i++) {
+                const data = bhParticleData[i];
+                data.angle += data.speed;
+
+                let x = Math.cos(data.angle) * data.radius;
+                let y = 0;
+                let z = Math.sin(data.angle) * data.radius;
+
+                if (data.isLensed) {
+                    y = Math.sin(data.angle) * (data.radius * 0.7) * Math.sin(data.lensAngle);
+                    z = Math.cos(data.angle) * data.radius * 0.3;
+                }
+
+                bhParticlesPositions[i * 3] = x;
+                bhParticlesPositions[i * 3 + 1] = y;
+                bhParticlesPositions[i * 3 + 2] = z;
+            }
+            bhParticlesGeo.attributes.position.needsUpdate = true;
+        }
+
+        // Stage 5: Extended Arrival at Black Hole (42.0s - 52.0s)
+        if (elapsed > 42.0 && elapsed <= 52.0) {
             setCaption("Mi amor por ti supera a un agujero negro y es capaz de entrar y volver de él por ti");
 
             warpLinesGroup.visible = false;
 
-            accretionDiskMesh.rotation.z += 0.01;
-            gravitationalLensingMesh.rotation.z -= 0.008;
+            if (accretionDiskMesh) accretionDiskMesh.rotation.z += 0.012;
+            if (lensingTopMesh) lensingTopMesh.rotation.z -= 0.008;
 
-            const targetCamPos = new THREE.Vector3(0, 10, -1720);
+            const targetCamPos = new THREE.Vector3(0, 8, -1725);
             camera.position.lerp(targetCamPos, 0.05);
             camera.lookAt(0, 0, -1800);
         }
 
-        // Stage 6: Galaxy View (49.0s - 56.0s)
-        else if (elapsed > 49.0 && elapsed <= 56.0) {
+        // Stage 6: Dramatic Zoom-Out revealing Full Galaxy (52.0s - 61.0s)
+        else if (elapsed > 52.0 && elapsed <= 61.0) {
             setCaption("Mi amor por ti no tiene límite, por más que tratara de mostrarte el universo no podría ni siquiera mostrarte el 1% de mi amor por vos por que es...");
 
-            galaxyParticles.material.opacity = Math.min(1, (elapsed - 49.0) / 2.0);
-            galaxyParticles.rotation.y += 0.003;
+            galaxyParticles.material.opacity = Math.min(1, (elapsed - 52.0) / 2.5);
+            galaxyParticles.rotation.y += 0.004;
 
-            const targetCamPos = new THREE.Vector3(0, 130, -1620);
-            camera.position.lerp(targetCamPos, 0.05);
+            // Camera zooms WAY OUT to reveal the vast 35,000 star galaxy with black hole as a tiny central core
+            const targetCamPos = new THREE.Vector3(0, 420, -1180);
+            camera.position.lerp(targetCamPos, 0.035);
             camera.lookAt(0, 0, -1800);
         }
 
-        // Stage 7: Infinity Symbol (56.0s onwards)
-        else if (elapsed > 56.0) {
+        // Stage 7: Infinity Symbol Morphing (61.0s onwards)
+        else if (elapsed > 61.0) {
             setCaption("Porque nuestro amor es infinito ❤️");
 
             galaxyParticles.rotation.y += 0.001;
@@ -916,14 +1005,14 @@ function animate(timestamp) {
             const positions = galaxyGeometry.attributes.position.array;
             const targetInfinity = galaxyGeometry.attributes.infinityPosition.array;
 
-            const morphFactor = Math.min(1, (elapsed - 56.0) / 3.5);
+            const morphFactor = Math.min(1, (elapsed - 61.0) / 4.0);
             for (let i = 0; i < positions.length; i++) {
                 positions[i] = positions[i] * (1 - morphFactor * 0.02) + targetInfinity[i] * (morphFactor * 0.02);
             }
             galaxyGeometry.attributes.position.needsUpdate = true;
 
-            const targetCamPos = new THREE.Vector3(0, 0, -1680);
-            camera.position.lerp(targetCamPos, 0.05);
+            const targetCamPos = new THREE.Vector3(0, 0, -1650);
+            camera.position.lerp(targetCamPos, 0.04);
             camera.lookAt(0, 0, -1800);
         }
 
