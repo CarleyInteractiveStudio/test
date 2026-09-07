@@ -510,6 +510,149 @@ function createAccretionDiskTexture() {
     return new THREE.CanvasTexture(adCanvas);
 }
 
+// Procedural Planet Canvas Texture Generators for 100% Reliable Rendering
+function createProceduralTexture(type) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    if (type === 'sun') {
+        const grad = ctx.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0, '#ffe066');
+        grad.addColorStop(0.5, '#ff9900');
+        grad.addColorStop(1, '#ff3300');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 256);
+
+        // Solar flares & granulation noise
+        for (let i = 0; i < 1500; i++) {
+            ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#ffcc00';
+            ctx.globalAlpha = Math.random() * 0.35;
+            ctx.fillRect(Math.random() * 512, Math.random() * 256, Math.random() * 8 + 2, Math.random() * 8 + 2);
+        }
+    } else if (type === 'earth') {
+        // Deep blue ocean base
+        ctx.fillStyle = '#0f3854';
+        ctx.fillRect(0, 0, 512, 256);
+
+        // Continents (green/brown noise landmasses)
+        ctx.fillStyle = '#2d8659';
+        for (let i = 0; i < 40; i++) {
+            const cx = Math.random() * 512;
+            const cy = 40 + Math.random() * 176;
+            const rx = 30 + Math.random() * 60;
+            const ry = 20 + Math.random() * 40;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rx, ry, Math.random() * Math.PI, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Swirling white clouds
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < 60; i++) {
+            ctx.globalAlpha = 0.25 + Math.random() * 0.35;
+            const cx = Math.random() * 512;
+            const cy = Math.random() * 256;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 40 + Math.random() * 80, 8 + Math.random() * 15, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else if (type === 'jupiter') {
+        // Atmospheric horizontal bands
+        const bandColors = ['#d8ca9f', '#a57c52', '#cbb08b', '#e1d5be', '#8d5b38', '#d0b896'];
+        for (let y = 0; y < 256; y += 8) {
+            ctx.fillStyle = bandColors[Math.floor((y / 8) % bandColors.length)];
+            ctx.fillRect(0, y, 512, 8 + Math.sin(y * 0.1) * 3);
+        }
+
+        // Great Red Spot
+        ctx.fillStyle = '#cc3322';
+        ctx.beginPath();
+        ctx.ellipse(320, 160, 35, 20, -0.1, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (type === 'saturn') {
+        // Soft golden bands
+        const bandColors = ['#e6cb96', '#d8b570', '#eedbb0', '#c29a50', '#f3e5c8'];
+        for (let y = 0; y < 256; y += 10) {
+            ctx.fillStyle = bandColors[Math.floor((y / 10) % bandColors.length)];
+            ctx.fillRect(0, y, 512, 10);
+        }
+    } else if (type === 'saturn_ring') {
+        canvas.width = 512;
+        canvas.height = 512;
+        const ringCtx = canvas.getContext('2d');
+        const grad = ringCtx.createRadialGradient(256, 256, 100, 256, 256, 250);
+        grad.addColorStop(0.0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.3, 'rgba(212, 178, 125, 0.85)');
+        grad.addColorStop(0.5, 'rgba(180, 140, 90, 0.4)');
+        grad.addColorStop(0.8, 'rgba(220, 190, 140, 0.9)');
+        grad.addColorStop(1.0, 'rgba(0,0,0,0)');
+        ringCtx.fillStyle = grad;
+        ringCtx.fillRect(0, 0, 512, 512);
+    } else if (type === 'mars') {
+        ctx.fillStyle = '#c1440e';
+        ctx.fillRect(0, 0, 512, 256);
+        ctx.fillStyle = '#8b2e06';
+        for (let i = 0; i < 30; i++) {
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(Math.random() * 512, Math.random() * 256, 15 + Math.random() * 45, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        // Ice caps
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = 0.8;
+        ctx.fillRect(0, 0, 512, 20);
+        ctx.fillRect(0, 236, 512, 20);
+    } else if (type === 'venus') {
+        const grad = ctx.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0, '#e3c888');
+        grad.addColorStop(0.5, '#d4b36a');
+        grad.addColorStop(1, '#b89653');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 256);
+    } else if (type === 'mercury') {
+        ctx.fillStyle = '#777777';
+        ctx.fillRect(0, 0, 512, 256);
+        ctx.fillStyle = '#555555';
+        for (let i = 0; i < 50; i++) {
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.arc(Math.random() * 512, Math.random() * 256, 5 + Math.random() * 15, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else if (type === 'moon') {
+        ctx.fillStyle = '#a0a0a0';
+        ctx.fillRect(0, 0, 512, 256);
+        ctx.fillStyle = '#606060';
+        for (let i = 0; i < 40; i++) {
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(Math.random() * 512, Math.random() * 256, 10 + Math.random() * 30, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else if (type === 'uranus') {
+        const grad = ctx.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0, '#65c3ec');
+        grad.addColorStop(1, '#4b70dd');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 256);
+    } else if (type === 'neptune') {
+        const grad = ctx.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0, '#274687');
+        grad.addColorStop(0.5, '#3960be');
+        grad.addColorStop(1, '#1d2f66');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 256);
+    } else {
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillRect(0, 0, 512, 256);
+    }
+
+    return new THREE.CanvasTexture(canvas);
+}
+
 // ==========================================
 // 3D THREE.JS SPACE ENGINE (Solar System, Warp Flight, Black Hole, Galaxy, Infinity)
 // ==========================================
@@ -549,10 +692,19 @@ loadingManager.onError = (url) => {
 
 const texLoader = new THREE.TextureLoader(loadingManager);
 
-function loadTextureSafe(url) {
-    return texLoader.load(url, undefined, undefined, () => {
-        console.warn('Fallback texture for', url);
-    });
+function loadTextureSafe(url, type) {
+    const fallback = createProceduralTexture(type);
+    const texture = texLoader.load(
+        url,
+        undefined,
+        undefined,
+        () => {
+            console.warn('Texture failed to load, falling back to procedural:', type, url);
+            texture.image = fallback.image;
+            texture.needsUpdate = true;
+        }
+    );
+    return texture;
 }
 
 function init3D() {
@@ -622,19 +774,18 @@ function createStarfield() {
 }
 
 function createSolarSystem() {
-    // Textures downloaded in textures/
-    const sunTex = loadTextureSafe('textures/sun.jpg');
-    const mercuryTex = loadTextureSafe('textures/mercury.jpg');
-    const venusTex = loadTextureSafe('textures/venus.jpg');
-    const earthTex = loadTextureSafe('textures/earth.jpg');
-    const earthNormal = loadTextureSafe('textures/earth_normal.jpg');
-    const earthSpec = loadTextureSafe('textures/earth_specular.jpg');
-    const moonTex = loadTextureSafe('textures/moon.jpg');
-    const marsTex = loadTextureSafe('textures/mars.jpg');
-    const jupiterTex = loadTextureSafe('textures/jupiter.jpg');
-    const saturnTex = loadTextureSafe('textures/saturn.jpg');
-    const uranusTex = loadTextureSafe('textures/uranus.jpg');
-    const neptuneTex = loadTextureSafe('textures/neptune.jpg');
+    // Textures with procedural fallbacks
+    const sunTex = loadTextureSafe('textures/sun.jpg', 'sun');
+    const mercuryTex = loadTextureSafe('textures/mercury.jpg', 'mercury');
+    const venusTex = loadTextureSafe('textures/venus.jpg', 'venus');
+    const earthTex = loadTextureSafe('textures/earth.jpg', 'earth');
+    const moonTex = loadTextureSafe('textures/moon.jpg', 'moon');
+    const marsTex = loadTextureSafe('textures/mars.jpg', 'mars');
+    const jupiterTex = loadTextureSafe('textures/jupiter.jpg', 'jupiter');
+    const saturnTex = loadTextureSafe('textures/saturn.jpg', 'saturn');
+    const saturnRingTex = createProceduralTexture('saturn_ring');
+    const uranusTex = loadTextureSafe('textures/uranus.jpg', 'uranus');
+    const neptuneTex = loadTextureSafe('textures/neptune.jpg', 'neptune');
 
     // Sun
     const sunGeo = new THREE.SphereGeometry(18, 48, 48);
@@ -658,7 +809,7 @@ function createSolarSystem() {
         { name: 'Mercury', r: 2.5, dist: 35, tex: mercuryTex, speed: 0.022, angle: Math.random() * Math.PI * 2 },
         { name: 'Venus', r: 4.2, dist: 52, tex: venusTex, speed: 0.016, angle: Math.random() * Math.PI * 2 },
         {
-            name: 'Earth', r: 5.2, dist: 78, tex: earthTex, normalMap: earthNormal, specMap: earthSpec,
+            name: 'Earth', r: 5.2, dist: 78, tex: earthTex,
             speed: 0.011, angle: Math.random() * Math.PI * 2, isEarth: true
         },
         { name: 'Mars', r: 3.6, dist: 105, tex: marsTex, speed: 0.008, angle: Math.random() * Math.PI * 2 },
@@ -670,23 +821,11 @@ function createSolarSystem() {
 
     pData.forEach(data => {
         const pGeo = new THREE.SphereGeometry(data.r, 32, 32);
-        let pMat;
-
-        if (data.isEarth) {
-            pMat = new THREE.MeshStandardMaterial({
-                map: data.tex,
-                normalMap: data.normalMap,
-                roughnessMap: data.specMap,
-                roughness: 0.5,
-                metalness: 0.1
-            });
-        } else {
-            pMat = new THREE.MeshStandardMaterial({
-                map: data.tex,
-                roughness: 0.6,
-                metalness: 0.1
-            });
-        }
+        const pMat = new THREE.MeshStandardMaterial({
+            map: data.tex,
+            roughness: 0.6,
+            metalness: 0.1
+        });
 
         const pMesh = new THREE.Mesh(pGeo, pMat);
 
@@ -729,12 +868,12 @@ function createSolarSystem() {
         }
 
         if (data.ring) {
-            const ringGeo = new THREE.RingGeometry(data.r + 3, data.r + 12, 64);
+            const ringGeo = new THREE.RingGeometry(data.r + 3, data.r + 14, 64);
             const ringMat = new THREE.MeshStandardMaterial({
-                color: 0xd4b27d,
+                map: saturnRingTex,
                 side: THREE.DoubleSide,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.95
             });
             const ring = new THREE.Mesh(ringGeo, ringMat);
             ring.rotation.x = Math.PI / 2.3;
@@ -1034,40 +1173,61 @@ function animate(timestamp) {
         ctx2d.restore();
     }
 
-    // 3. CONTINUOUS particle flow: Orbit -> "For you" -> "ANA" -> Disperse (7.5s - 16.0s)
+    // 3. Clean Elegant Neon Text ("For you" -> "ANA") (7.5s - 16.0s)
     if (elapsed > 7.5 && elapsed <= 16.0) {
-        if (morphParticles.length === 0) setupMorphParticles();
-
-        let stage = 0;
-        let progress = 0;
-
-        if (elapsed <= 9.5) {
-            stage = 0;
-            progress = Math.min(1, (elapsed - 7.5) / 2.0);
-        } else if (elapsed <= 11.5) {
-            stage = 1;
-            progress = 1.0;
-        } else if (elapsed <= 13.8) {
-            stage = 2;
-            progress = Math.min(1, (elapsed - 11.5) / 2.3);
-        } else if (elapsed <= 15.2) {
-            stage = 3;
-            progress = 1.0;
-        } else {
-            stage = 4;
-            progress = Math.min(1, (elapsed - 15.2) / 0.8);
-        }
-
-        const overallFade = elapsed > 15.3 ? Math.max(0, 1 - (elapsed - 15.3) / 0.7) : 1;
-
         ctx2d.save();
-        ctx2d.globalAlpha = overallFade;
-        for (let i = 0; i < morphParticles.length; i++) {
-            const t1 = forYouTargets[i % forYouTargets.length];
-            const t2 = anaTargets[i % anaTargets.length];
-            morphParticles[i].update(t1, t2, stage, progress);
-            morphParticles[i].draw(ctx2d);
+        ctx2d.textAlign = 'center';
+        ctx2d.textBaseline = 'middle';
+
+        const fontSizeForYou = width < 800 ? 90 : 120;
+        const fontSizeAna = width < 800 ? 120 : 160;
+
+        // "For you" (7.5s - 11.5s)
+        if (elapsed <= 11.5) {
+            let opacity = 1.0;
+            if (elapsed < 8.5) {
+                opacity = (elapsed - 7.5) / 1.0;
+            } else if (elapsed > 10.8) {
+                opacity = Math.max(0, 1.0 - (elapsed - 10.8) / 0.7);
+            }
+
+            ctx2d.globalAlpha = Math.max(0, Math.min(1, opacity));
+            ctx2d.font = `bold ${fontSizeForYou}px 'Great Vibes', cursive, sans-serif`;
+
+            // Layered Neon Glow
+            ctx2d.shadowColor = '#ff0055';
+            ctx2d.shadowBlur = 30;
+            ctx2d.fillStyle = '#ff3388';
+            ctx2d.fillText('For you', centerX, centerY);
+
+            ctx2d.shadowBlur = 12;
+            ctx2d.fillStyle = '#ffffff';
+            ctx2d.fillText('For you', centerX, centerY);
         }
+
+        // "ANA" (11.2s - 16.0s)
+        if (elapsed >= 11.2) {
+            let opacity = 1.0;
+            if (elapsed < 12.2) {
+                opacity = (elapsed - 11.2) / 1.0;
+            } else if (elapsed > 15.0) {
+                opacity = Math.max(0, 1.0 - (elapsed - 15.0) / 1.0);
+            }
+
+            ctx2d.globalAlpha = Math.max(0, Math.min(1, opacity));
+            ctx2d.font = `bold ${fontSizeAna}px 'Great Vibes', cursive, sans-serif`;
+
+            // Layered Neon Glow for ANA
+            ctx2d.shadowColor = '#ff0066';
+            ctx2d.shadowBlur = 35;
+            ctx2d.fillStyle = '#ff2277';
+            ctx2d.fillText('ANA', centerX, centerY);
+
+            ctx2d.shadowBlur = 15;
+            ctx2d.fillStyle = '#ffffff';
+            ctx2d.fillText('ANA', centerX, centerY);
+        }
+
         ctx2d.restore();
     }
 
@@ -1216,7 +1376,7 @@ function animate(timestamp) {
 
         // Stage 7: Infinity Symbol Morphing (61.0s onwards)
         else if (elapsed > 61.0) {
-            setCaption("Porque nuestro amor es infinito ❤️");
+            setCaption("Porque mi amor por ti es infinito ❤️");
 
             blackHoleGroup.visible = false;
             galaxyParticles.rotation.y += 0.001;
