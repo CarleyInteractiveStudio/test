@@ -208,8 +208,6 @@ class HeartInfinityParticle {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size * 1.5, 0, Math.PI * 2);
         ctx.fillStyle = `hsla(${this.hue}, 100%, 85%, 0.95)`;
-        ctx.shadowColor = '#ff007f';
-        ctx.shadowBlur = 12;
         ctx.fill();
 
         ctx.restore();
@@ -343,6 +341,14 @@ function getRosePoints() {
     return points;
 }
 
+let cachedRosePoints = null;
+function getRosePointsCached() {
+    if (!cachedRosePoints) {
+        cachedRosePoints = getRosePoints();
+    }
+    return cachedRosePoints;
+}
+
 let forYouTargets = [];
 let anaTargets = [];
 
@@ -461,7 +467,7 @@ let morphParticles = [];
 function setupMorphParticles() {
     morphParticles = [];
     const maxCount = Math.max(forYouTargets.length, anaTargets.length);
-    const rosePoints = getRosePoints();
+    const rosePoints = getRosePointsCached();
 
     for (let i = 0; i < maxCount; i++) {
         const src = rosePoints[i % rosePoints.length];
@@ -1206,10 +1212,10 @@ function animate(timestamp) {
         ctx2d.lineWidth = 3.5;
         ctx2d.strokeStyle = '#ff0055';
         ctx2d.shadowColor = '#ff0055';
-        ctx2d.shadowBlur = 20;
+        ctx2d.shadowBlur = 10;
         ctx2d.beginPath();
 
-        const steps = 300;
+        const steps = 180;
         const currentSteps = Math.floor(steps * hProg);
         for (let i = 0; i <= currentSteps; i++) {
             const t = (i / steps) * Math.PI * 2;
@@ -1232,18 +1238,16 @@ function animate(timestamp) {
     if (elapsed > 4.0 && elapsed <= 7.5) {
         const rProg = Math.min(1, (elapsed - 4.0) / 2.5);
         const rFade = elapsed > 6.7 ? Math.max(0, 1 - (elapsed - 6.7) / 0.8) : 1;
-        const rosePoints = getRosePoints();
+        const rosePoints = getRosePointsCached();
         const drawCount = Math.floor(rosePoints.length * rProg);
 
         ctx2d.save();
         ctx2d.globalAlpha = rFade;
-        ctx2d.shadowBlur = 12;
         for (let i = 0; i < drawCount; i++) {
             const pt = rosePoints[i];
             ctx2d.beginPath();
             ctx2d.arc(pt.x, pt.y, pt.size || 1.6, 0, Math.PI * 2);
             ctx2d.fillStyle = pt.color || '#ff1a53';
-            ctx2d.shadowColor = pt.glow || '#ff0055';
             ctx2d.fill();
         }
         ctx2d.restore();
