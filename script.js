@@ -1173,59 +1173,41 @@ function animate(timestamp) {
         ctx2d.restore();
     }
 
-    // 3. Clean Elegant Neon Text ("For you" -> "ANA") (7.5s - 16.0s)
+    // 3. CONTINUOUS LIGHT PARTICLE MORPHING ("For you" -> "ANA") (7.5s - 16.0s)
     if (elapsed > 7.5 && elapsed <= 16.0) {
-        ctx2d.save();
-        ctx2d.textAlign = 'center';
-        ctx2d.textBaseline = 'middle';
+        if (morphParticles.length === 0) setupMorphParticles();
 
-        const fontSizeForYou = width < 800 ? 90 : 120;
-        const fontSizeAna = width < 800 ? 120 : 160;
+        let stage = 0;
+        let progress = 0;
 
-        // "For you" (7.5s - 11.5s)
-        if (elapsed <= 11.5) {
-            let opacity = 1.0;
-            if (elapsed < 8.5) {
-                opacity = (elapsed - 7.5) / 1.0;
-            } else if (elapsed > 10.8) {
-                opacity = Math.max(0, 1.0 - (elapsed - 10.8) / 0.7);
-            }
-
-            ctx2d.globalAlpha = Math.max(0, Math.min(1, opacity));
-            ctx2d.font = `bold ${fontSizeForYou}px 'Great Vibes', cursive, sans-serif`;
-
-            // Layered Neon Glow
-            ctx2d.shadowColor = '#ff0055';
-            ctx2d.shadowBlur = 30;
-            ctx2d.fillStyle = '#ff3388';
-            ctx2d.fillText('For you', centerX, centerY);
-
-            ctx2d.shadowBlur = 12;
-            ctx2d.fillStyle = '#ffffff';
-            ctx2d.fillText('For you', centerX, centerY);
+        if (elapsed <= 9.5) {
+            stage = 0; // Orbiting light particles coming in from right
+            progress = Math.min(1, (elapsed - 7.5) / 2.0);
+        } else if (elapsed <= 11.5) {
+            stage = 1; // Forming "For you"
+            progress = 1.0;
+        } else if (elapsed <= 13.8) {
+            stage = 2; // Morphing into "ANA"
+            progress = Math.min(1, (elapsed - 11.5) / 2.3);
+        } else if (elapsed <= 15.2) {
+            stage = 3; // Holding "ANA"
+            progress = 1.0;
+        } else {
+            stage = 4; // Dispersing into space
+            progress = Math.min(1, (elapsed - 15.2) / 0.8);
         }
 
-        // "ANA" (11.2s - 16.0s)
-        if (elapsed >= 11.2) {
-            let opacity = 1.0;
-            if (elapsed < 12.2) {
-                opacity = (elapsed - 11.2) / 1.0;
-            } else if (elapsed > 15.0) {
-                opacity = Math.max(0, 1.0 - (elapsed - 15.0) / 1.0);
-            }
+        const overallFade = elapsed > 15.3 ? Math.max(0, 1 - (elapsed - 15.3) / 0.7) : 1;
 
-            ctx2d.globalAlpha = Math.max(0, Math.min(1, opacity));
-            ctx2d.font = `bold ${fontSizeAna}px 'Great Vibes', cursive, sans-serif`;
+        ctx2d.save();
+        ctx2d.globalAlpha = overallFade;
 
-            // Layered Neon Glow for ANA
-            ctx2d.shadowColor = '#ff0066';
-            ctx2d.shadowBlur = 35;
-            ctx2d.fillStyle = '#ff2277';
-            ctx2d.fillText('ANA', centerX, centerY);
-
-            ctx2d.shadowBlur = 15;
-            ctx2d.fillStyle = '#ffffff';
-            ctx2d.fillText('ANA', centerX, centerY);
+        // Draw glowing light particles forming text
+        for (let i = 0; i < morphParticles.length; i++) {
+            const t1 = forYouTargets[i % forYouTargets.length];
+            const t2 = anaTargets[i % anaTargets.length];
+            morphParticles[i].update(t1, t2, stage, progress);
+            morphParticles[i].draw(ctx2d);
         }
 
         ctx2d.restore();
