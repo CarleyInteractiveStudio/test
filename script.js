@@ -1,9 +1,118 @@
-// --- Setup 2D Canvas & 3D Three.js Engine ---
+// --- Preloader, Audio & Setup ---
 const canvas2d = document.getElementById('canvas2d');
 const ctx2d = canvas2d.getContext('2d');
 
 const captionContainer = document.getElementById('caption-container');
 const captionText = document.getElementById('caption-text');
+
+const loaderOverlay = document.getElementById('loader-overlay');
+const loaderBar = document.getElementById('loader-bar');
+const loaderStatus = document.getElementById('loader-status');
+const startBtn = document.getElementById('start-btn');
+
+// Web Audio Synth for Romantic Ambient & Space Music
+let audioCtx = null;
+let currentAudioStage = -1;
+let synthGainNode = null;
+let isAudioActive = false;
+
+function initWebAudio() {
+    if (audioCtx) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+        audioCtx = new AudioContext();
+        synthGainNode = audioCtx.createGain();
+        synthGainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        synthGainNode.connect(audioCtx.destination);
+        isAudioActive = true;
+    }
+}
+
+function playRomanticChord(notes, duration = 4.0) {
+    if (!audioCtx || !isAudioActive) return;
+    const now = audioCtx.currentTime;
+
+    notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const noteGain = audioCtx.createGain();
+
+        // Warm sine + soft triangle blend
+        osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+
+        noteGain.gain.setValueAtTime(0, now);
+        noteGain.gain.linearRampToValueAtTime(0.08 / notes.length, now + 1.2);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc.connect(noteGain);
+        noteGain.connect(synthGainNode);
+
+        osc.start(now);
+        osc.stop(now + duration);
+    });
+}
+
+function playCosmicDrone(freq, duration = 6.0) {
+    if (!audioCtx || !isAudioActive) return;
+    const now = audioCtx.currentTime;
+
+    const osc = audioCtx.createOscillator();
+    const filter = audioCtx.createBiquadFilter();
+    const droneGain = audioCtx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, now);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(220, now);
+    filter.frequency.exponentialRampToValueAtTime(600, now + duration * 0.5);
+
+    droneGain.gain.setValueAtTime(0, now);
+    droneGain.gain.linearRampToValueAtTime(0.05, now + 1.5);
+    droneGain.gain.linearRampToValueAtTime(0, now + duration);
+
+    osc.connect(filter);
+    filter.connect(droneGain);
+    droneGain.connect(synthGainNode);
+
+    osc.start(now);
+    osc.stop(now + duration);
+}
+
+function updateAudioStage(elapsed) {
+    if (!audioCtx || !isAudioActive) return;
+
+    // Stage 1: Intro (Heart & Rose) - Soft Romantic F# Major / D#m7 (261Hz, 329Hz, 392Hz, 523Hz)
+    if (elapsed < 16.0) {
+        if (currentAudioStage !== 0) {
+            currentAudioStage = 0;
+            playRomanticChord([261.63, 329.63, 392.00, 523.25], 6.0); // C major7 romantic
+        }
+    }
+    // Stage 2: Solar System Overview - Gentle Space Harmony (G3, B3, D4, F#4)
+    else if (elapsed >= 16.0 && elapsed < 36.0) {
+        if (currentAudioStage !== 1) {
+            currentAudioStage = 1;
+            playRomanticChord([196.00, 246.94, 293.66, 369.99], 8.0);
+        }
+    }
+    // Stage 3: Speed Warp & Black Hole - Deep Cosmic Bass Drone + Gravity Resonator
+    else if (elapsed >= 36.0 && elapsed < 52.0) {
+        if (currentAudioStage !== 2) {
+            currentAudioStage = 2;
+            playCosmicDrone(65.41, 10.0); // Deep C2 drone
+            playRomanticChord([130.81, 164.81, 196.00, 246.94], 10.0);
+        }
+    }
+    // Stage 4: Vast Galaxy Zoom & Infinity - Cosmic Uplifting Symphony
+    else if (elapsed >= 52.0) {
+        if (currentAudioStage !== 3) {
+            currentAudioStage = 3;
+            playRomanticChord([220.00, 277.18, 329.63, 440.00, 554.37], 12.0); // A Major celestial chord
+            playCosmicDrone(110.00, 12.0);
+        }
+    }
+}
 
 let width, height;
 let centerX, centerY, rightX, rightY;
@@ -67,31 +176,106 @@ function getHeartPoint(t) {
 function getRosePoints() {
     const points = [];
     const roseCenterX = centerX;
-    const roseCenterY = centerY;
+    const roseCenterY = centerY - 15;
 
-    for (let t = 0; t <= 1; t += 0.02) {
-        const sy = roseCenterY + 10 + t * 100;
-        const sx = roseCenterX + Math.sin(t * Math.PI * 2) * 6;
-        points.push({ x: sx, y: sy, type: 'stem' });
+    // Stem: smooth elegant curve
+    for (let t = 0; t <= 1; t += 0.008) {
+        const sy = roseCenterY + 30 + t * 150;
+        const sx = roseCenterX + Math.sin(t * Math.PI * 1.5) * 14;
+        points.push({ x: sx, y: sy, type: 'stem', color: '#00ff88', glow: '#00ff88', size: 2.2 });
+        points.push({ x: sx - 1.8, y: sy, type: 'stem', color: '#00cc66', glow: '#00ff88', size: 1.8 });
+        points.push({ x: sx + 1.8, y: sy, type: 'stem', color: '#00cc66', glow: '#00ff88', size: 1.8 });
     }
 
-    for (let t = 0; t <= Math.PI * 2; t += 0.15) {
-        let lx = roseCenterX - 12 - Math.sin(t) * 20;
-        let ly = roseCenterY + 55 - Math.cos(t) * 8;
-        points.push({ x: lx, y: ly, type: 'leaf' });
+    // Stem Thorns
+    [0.35, 0.65].forEach((t, idx) => {
+        const sy = roseCenterY + 30 + t * 150;
+        const sx = roseCenterX + Math.sin(t * Math.PI * 1.5) * 14;
+        const dir = idx === 0 ? -1 : 1;
+        for (let i = 0; i < 14; i++) {
+            points.push({
+                x: sx + dir * (i * 0.85),
+                y: sy - i * 0.35,
+                type: 'stem', color: '#02a856', glow: '#00ff88', size: 1.5
+            });
+        }
+    });
 
-        let rx = roseCenterX + 12 + Math.sin(t) * 20;
-        let ry = roseCenterY + 40 - Math.cos(t) * 8;
-        points.push({ x: rx, y: ry, type: 'leaf' });
+    // Detailed Leaves with veins
+    const createLeaf = (baseX, baseY, angle, scale) => {
+        for (let u = 0; u <= 1; u += 0.035) {
+            for (let v = -1; v <= 1; v += 0.1) {
+                const leafLen = u * 50 * scale;
+                const width = Math.sin(u * Math.PI) * 20 * scale;
+                const lx = baseX + Math.cos(angle) * leafLen - Math.sin(angle) * (v * width);
+                const ly = baseY + Math.sin(angle) * leafLen + Math.cos(angle) * (v * width);
+                const isVein = Math.abs(v) < 0.15 || Math.abs((u * 12) % 2 - 1) < 0.25;
+                points.push({
+                    x: lx, y: ly,
+                    type: 'leaf',
+                    color: isVein ? '#88ffaa' : '#00b853',
+                    glow: '#00ff88',
+                    size: isVein ? 1.8 : 1.3
+                });
+            }
+        }
+    };
+
+    const stemPt1 = { x: roseCenterX + Math.sin(0.35 * Math.PI * 1.5) * 14, y: roseCenterY + 30 + 0.35 * 150 };
+    const stemPt2 = { x: roseCenterX + Math.sin(0.65 * Math.PI * 1.5) * 14, y: roseCenterY + 30 + 0.65 * 150 };
+    createLeaf(stemPt1.x, stemPt1.y, -Math.PI * 0.72, 1.0);
+    createLeaf(stemPt2.x, stemPt2.y, -Math.PI * 0.22, 0.95);
+
+    // Sepal (green base under flower head)
+    for (let a = -Math.PI * 0.85; a <= Math.PI * 0.85; a += 0.08) {
+        for (let r = 5; r <= 28; r += 2.2) {
+            const sx = roseCenterX + Math.sin(a) * r * 0.65;
+            const sy = roseCenterY + 28 + Math.cos(a) * r * 0.85;
+            points.push({ x: sx, y: sy, type: 'sepal', color: '#00cc66', glow: '#00ff88', size: 1.6 });
+        }
     }
 
-    const numPetals = 320;
-    for (let i = 0; i < numPetals; i++) {
-        const theta = (i / numPetals) * Math.PI * 8;
-        const r = (Math.sin(2.5 * theta) * 0.4 + 0.6) * (theta * 1.8) * (roseScale * 0.25);
-        const x = roseCenterX + r * Math.cos(theta);
-        const y = roseCenterY + r * Math.sin(theta);
-        points.push({ x, y, type: 'petal' });
+    // Layered Blooming Rose Petals
+    const petalLayers = [
+        { count: 14, rMin: 40, rMax: 60, hueMin: 340, hueMax: 355, lum: '65%' },
+        { count: 18, rMin: 26, rMax: 42, hueMin: 345, hueMax: 360, lum: '60%' },
+        { count: 22, rMin: 14, rMax: 28, hueMin: 350, hueMax: 10,  lum: '55%' },
+        { count: 26, rMin: 3,  rMax: 15, hueMin: 355, hueMax: 15,  lum: '50%' }
+    ];
+
+    petalLayers.forEach((layer) => {
+        for (let p = 0; p < layer.count; p++) {
+            const baseAngle = (p / layer.count) * Math.PI * 2;
+            for (let t = 0; t <= Math.PI; t += 0.08) {
+                const petalRadius = layer.rMin + Math.sin(t) * (layer.rMax - layer.rMin);
+                const angle = baseAngle + Math.sin(t * 2) * 0.22;
+                const px = roseCenterX + Math.cos(angle) * petalRadius;
+                const py = roseCenterY + Math.sin(angle) * (petalRadius * 0.88) - (1 - Math.sin(t)) * 6;
+
+                const hue = layer.hueMin + Math.random() * (layer.hueMax - layer.hueMin);
+                points.push({
+                    x: px, y: py,
+                    type: 'petal',
+                    color: `hsl(${hue}, 100%, ${layer.lum})`,
+                    glow: '#ff0055',
+                    size: 1.9
+                });
+            }
+        }
+    });
+
+    // Spiral swirl core accent
+    for (let theta = 0; theta < Math.PI * 10; theta += 0.05) {
+        const r = (theta / (Math.PI * 10)) * 24;
+        const px = roseCenterX + Math.cos(theta) * r;
+        const py = roseCenterY + Math.sin(theta) * (r * 0.82);
+        points.push({
+            x: px, y: py,
+            type: 'petal',
+            color: '#ff3366',
+            glow: '#ff0066',
+            size: 2.1
+        });
     }
 
     return points;
@@ -341,7 +525,29 @@ let warpLinesGroup, warpLines = [];
 let galaxyParticles, galaxyGeometry;
 let particleTexture;
 
-const texLoader = new THREE.TextureLoader();
+// THREE Loading Manager for Preloader
+let isExperienceReady = false;
+
+const loadingManager = new THREE.LoadingManager();
+
+loadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
+    const progress = Math.round((itemsLoaded / itemsTotal) * 100);
+    if (loaderBar) loaderBar.style.width = `${progress}%`;
+    if (loaderStatus) loaderStatus.textContent = `Cargando universo... ${progress}%`;
+};
+
+loadingManager.onLoad = () => {
+    if (loaderBar) loaderBar.style.width = '100%';
+    if (loaderStatus) loaderStatus.textContent = '¡Todo listo para Ana! ❤️';
+    isExperienceReady = true;
+    if (startBtn) startBtn.classList.remove('hidden');
+};
+
+loadingManager.onError = (url) => {
+    console.warn('Error loading asset:', url);
+};
+
+const texLoader = new THREE.TextureLoader(loadingManager);
 
 function loadTextureSafe(url) {
     return texLoader.load(url, undefined, undefined, () => {
@@ -631,33 +837,38 @@ function createCinematicBlackHole() {
     lensingTopMesh.rotation.x = 0; // Front facing lens ring warping over top
     blackHoleGroup.add(lensingTopMesh);
 
-    // 5. Curved Dynamic Particle Stream ("Bolitas" bending around gravity)
+    // 5. Continuous 3D Gravitational Circulation Particles ("Bolitas" in 3D orbit)
     const particleCount = 12000;
     bhParticlesGeo = new THREE.BufferGeometry();
     bhParticlesPositions = new Float32Array(particleCount * 3);
     bhParticleData = [];
 
     for (let i = 0; i < particleCount; i++) {
-        const radius = 17.5 + Math.random() * 50;
+        const radius = 17.5 + Math.random() * 55;
         const angle = Math.random() * Math.PI * 2;
-        const speed = (0.015 + Math.random() * 0.02) * (35 / radius);
+        const speed = (0.012 + Math.random() * 0.02) * (38 / radius);
 
-        // 30% of particles follow gravitational lensing curves over top/bottom!
-        const isLensed = Math.random() < 0.35;
-        const lensAngle = isLensed ? (Math.random() < 0.5 ? Math.PI * 0.4 : -Math.PI * 0.4) : 0;
+        // Tilt angle for 3D circulation (smooth continuous loop over top, behind, and under bottom)
+        const tiltFactor = Math.random();
+        // 40% horizontal disk, 60% dynamic vertical gravitational loop
+        const loopType = tiltFactor < 0.4 ? 0 : (tiltFactor < 0.7 ? 1 : 2);
 
-        bhParticleData.push({ radius, angle, speed, lensAngle, isLensed });
+        bhParticleData.push({ radius, angle, speed, loopType });
 
-        // Calculate 3D position
-        let x = Math.cos(angle) * radius;
-        let y = (Math.random() - 0.5) * 1.5;
+        const x = Math.cos(angle) * radius;
+        let y = 0;
         let z = Math.sin(angle) * radius;
 
-        if (isLensed) {
-            // Bend coordinates up/down over event horizon
-            const curveFactor = Math.sin((radius - 17.5) / 50 * Math.PI);
-            y = Math.sin(angle) * (radius * 0.7) * Math.sin(lensAngle);
-            z = Math.cos(angle) * radius * 0.3;
+        if (loopType === 1) {
+            // Loop bending over top & behind
+            y = Math.sin(angle) * (radius * 0.75);
+            z = Math.cos(angle) * (radius * 0.45);
+        } else if (loopType === 2) {
+            // Loop bending under bottom
+            y = -Math.sin(angle) * (radius * 0.75);
+            z = Math.cos(angle) * (radius * 0.45);
+        } else {
+            y = (Math.random() - 0.5) * 2.5;
         }
 
         bhParticlesPositions[i * 3] = x;
@@ -735,7 +946,7 @@ function createGalaxyAndInfinity() {
     });
 
     galaxyParticles = new THREE.Points(galaxyGeometry, mat);
-    galaxyParticles.position.set(0, 0, -1800);
+    galaxyParticles.position.set(0, 0, -3500); // Separate cosmic location in deep space!
     scene.add(galaxyParticles);
 
     const infinityPos = new Float32Array(count * 3);
@@ -811,18 +1022,13 @@ function animate(timestamp) {
 
         ctx2d.save();
         ctx2d.globalAlpha = rFade;
-        ctx2d.shadowBlur = 15;
+        ctx2d.shadowBlur = 12;
         for (let i = 0; i < drawCount; i++) {
             const pt = rosePoints[i];
             ctx2d.beginPath();
-            ctx2d.arc(pt.x, pt.y, pt.type === 'petal' ? 1.8 : 1.4, 0, Math.PI * 2);
-            if (pt.type === 'stem' || pt.type === 'leaf') {
-                ctx2d.fillStyle = '#00ff88';
-                ctx2d.shadowColor = '#00ff88';
-            } else {
-                ctx2d.fillStyle = '#ff1a53';
-                ctx2d.shadowColor = '#ff0055';
-            }
+            ctx2d.arc(pt.x, pt.y, pt.size || 1.6, 0, Math.PI * 2);
+            ctx2d.fillStyle = pt.color || '#ff1a53';
+            ctx2d.shadowColor = pt.glow || '#ff0055';
             ctx2d.fill();
         }
         ctx2d.restore();
@@ -947,19 +1153,27 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -1800);
         }
 
-        // Update Black Hole particles ("bolitas") dynamically
+        // Update Black Hole particles ("bolitas") dynamically in 3D circulation
         if (bhParticleData.length > 0 && bhParticlesPositions) {
             for (let i = 0; i < bhParticleData.length; i++) {
                 const data = bhParticleData[i];
                 data.angle += data.speed;
 
-                let x = Math.cos(data.angle) * data.radius;
+                const x = Math.cos(data.angle) * data.radius;
                 let y = 0;
                 let z = Math.sin(data.angle) * data.radius;
 
-                if (data.isLensed) {
-                    y = Math.sin(data.angle) * (data.radius * 0.7) * Math.sin(data.lensAngle);
-                    z = Math.cos(data.angle) * data.radius * 0.3;
+                if (data.loopType === 1) {
+                    // Over top and behind loop
+                    y = Math.sin(data.angle) * (data.radius * 0.75);
+                    z = Math.cos(data.angle) * (data.radius * 0.45);
+                } else if (data.loopType === 2) {
+                    // Under bottom loop
+                    y = -Math.sin(data.angle) * (data.radius * 0.75);
+                    z = Math.cos(data.angle) * (data.radius * 0.45);
+                } else {
+                    // Accretion disk plane wobble
+                    y = Math.sin(data.angle * 2) * 1.5;
                 }
 
                 bhParticlesPositions[i * 3] = x;
@@ -974,6 +1188,7 @@ function animate(timestamp) {
             setCaption("Mi amor por ti supera a un agujero negro y es capaz de entrar y volver de él por ti");
 
             warpLinesGroup.visible = false;
+            blackHoleGroup.visible = true;
 
             if (accretionDiskMesh) accretionDiskMesh.rotation.z += 0.012;
             if (lensingTopMesh) lensingTopMesh.rotation.z -= 0.008;
@@ -983,23 +1198,27 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -1800);
         }
 
-        // Stage 6: Dramatic Zoom-Out revealing Full Galaxy (52.0s - 61.0s)
+        // Stage 6: Transition to Separate Galaxy Scene in Deep Space (52.0s - 61.0s)
         else if (elapsed > 52.0 && elapsed <= 61.0) {
             setCaption("Mi amor por ti no tiene límite, por más que tratara de mostrarte el universo no podría ni siquiera mostrarte el 1% de mi amor por vos por que es...");
+
+            // Black Hole scene fades / yields to separate Galaxy scene
+            blackHoleGroup.visible = false;
 
             galaxyParticles.material.opacity = Math.min(1, (elapsed - 52.0) / 2.5);
             galaxyParticles.rotation.y += 0.004;
 
-            // Camera zooms WAY OUT to reveal the vast 35,000 star galaxy with black hole as a tiny central core
-            const targetCamPos = new THREE.Vector3(0, 420, -1180);
+            // Camera looks at separate Galaxy scene at z = -3500
+            const targetCamPos = new THREE.Vector3(0, 350, -2880);
             camera.position.lerp(targetCamPos, 0.035);
-            camera.lookAt(0, 0, -1800);
+            camera.lookAt(0, 0, -3500);
         }
 
         // Stage 7: Infinity Symbol Morphing (61.0s onwards)
         else if (elapsed > 61.0) {
             setCaption("Porque nuestro amor es infinito ❤️");
 
+            blackHoleGroup.visible = false;
             galaxyParticles.rotation.y += 0.001;
 
             const positions = galaxyGeometry.attributes.position.array;
@@ -1011,20 +1230,43 @@ function animate(timestamp) {
             }
             galaxyGeometry.attributes.position.needsUpdate = true;
 
-            const targetCamPos = new THREE.Vector3(0, 0, -1650);
+            const targetCamPos = new THREE.Vector3(0, 0, -3350);
             camera.position.lerp(targetCamPos, 0.04);
-            camera.lookAt(0, 0, -1800);
+            camera.lookAt(0, 0, -3500);
         }
 
         renderer.render(scene, camera);
     }
 
+    // Update audio dynamically as scene evolves
+    updateAudioStage(elapsed);
+
     requestAnimationFrame(animate);
 }
 
-// Launch
+// Launch & Start Button Logic
+let animationStarted = false;
+
+function startExperience() {
+    if (animationStarted) return;
+    animationStarted = true;
+
+    initWebAudio();
+
+    if (loaderOverlay) {
+        loaderOverlay.classList.add('hidden');
+    }
+
+    requestAnimationFrame(animate);
+}
+
+if (startBtn) {
+    startBtn.addEventListener('click', startExperience);
+}
+
 resizeAll();
 document.fonts.ready.then(() => {
     initTextTargets();
-    requestAnimationFrame(animate);
+    // Preload 3D textures immediately so loading manager tracks them!
+    init3D();
 });
