@@ -728,7 +728,6 @@ let blackHoleGroup, accretionDiskMesh, gravitationalLensingMesh, lensingTopMesh,
 let blackHoleParticlesGroup, bhParticlesGeo, bhParticlesPositions, bhParticleData = [];
 let warpLinesGroup, warpLines = [];
 let galaxyParticles, galaxyGeometry;
-let princessTerrainGroup, princessMesh, crownGlowSprite;
 let particleTexture;
 
 // THREE Loading Manager for Preloader
@@ -818,9 +817,6 @@ function init3D() {
 
     // Galaxy & Infinity
     createGalaxyAndInfinity();
-
-    // 3D Royal Princess on Serene Terrain
-    createPrincessScene();
 }
 
 function createStarfield() {
@@ -1102,151 +1098,6 @@ function createCinematicBlackHole() {
     scene.add(blackHoleGroup);
 }
 
-function createPrincessScene() {
-    princessTerrainGroup = new THREE.Group();
-    princessTerrainGroup.position.set(0, -25, -200); // Placed gracefully in front of space view
-    princessTerrainGroup.visible = false;
-
-    // 1. Serene Terrain / Celestial Mound
-    const terrainGeo = new THREE.CylinderGeometry(40, 65, 12, 64);
-    // Add organic height displacements
-    const posAttr = terrainGeo.attributes.position;
-    for (let i = 0; i < posAttr.count; i++) {
-        const vx = posAttr.getX(i);
-        const vy = posAttr.getY(i);
-        const vz = posAttr.getZ(i);
-        const bump = Math.sin(vx * 0.1) * Math.cos(vz * 0.1) * 1.8;
-        posAttr.setY(i, vy + bump);
-    }
-    terrainGeo.computeVertexNormals();
-
-    const terrainMat = new THREE.MeshStandardMaterial({
-        color: 0x120826,
-        roughness: 0.85,
-        metalness: 0.2,
-        emissive: 0x0a0314
-    });
-    const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
-    terrainMesh.position.set(0, -6, 0);
-    princessTerrainGroup.add(terrainMesh);
-
-    // Glowing starlight flowers / crystals on the terrain
-    const crystalGeo = new THREE.ConeGeometry(0.8, 2.5, 5);
-    const crystalMat = new THREE.MeshBasicMaterial({ color: 0xff66cc, wireframe: true });
-    for (let c = 0; c < 25; c++) {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 12 + Math.random() * 25;
-        const crystal = new THREE.Mesh(crystalGeo, crystalMat);
-        crystal.position.set(Math.cos(angle) * dist, 0.5, Math.sin(angle) * dist);
-        crystal.rotation.y = Math.random() * Math.PI;
-        princessTerrainGroup.add(crystal);
-    }
-
-    // 2. 3D Royal Princess Figure
-    princessMesh = new THREE.Group();
-
-    // Layered Princess Gown (Outer skirt with soft rose/gold gradient)
-    const skirtGeo = new THREE.ConeGeometry(7.5, 16, 32, 1, true); // Open base skirt
-    const skirtMat = new THREE.MeshStandardMaterial({
-        color: 0xff3388,
-        emissive: 0x440022,
-        roughness: 0.3,
-        metalness: 0.4,
-        side: THREE.DoubleSide
-    });
-    const skirt = new THREE.Mesh(skirtGeo, skirtMat);
-    skirt.position.set(0, 8, 0);
-    princessMesh.add(skirt);
-
-    // Inner Gown Flow Layer
-    const innerSkirtGeo = new THREE.ConeGeometry(6.2, 14.5, 32, 1, true);
-    const innerSkirtMat = new THREE.MeshBasicMaterial({
-        color: 0xffd700,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.4
-    });
-    const innerSkirt = new THREE.Mesh(innerSkirtGeo, innerSkirtMat);
-    innerSkirt.position.set(0, 7.2, 0);
-    princessMesh.add(innerSkirt);
-
-    // Elegant Torso / Corset
-    const torsoGeo = new THREE.CylinderGeometry(1.5, 2.2, 6, 24);
-    const torsoMat = new THREE.MeshStandardMaterial({
-        color: 0x2b0018,
-        roughness: 0.2,
-        metalness: 0.8,
-        emissive: 0x660033
-    });
-    const torso = new THREE.Mesh(torsoGeo, torsoMat);
-    torso.position.set(0, 17, 0);
-    princessMesh.add(torso);
-
-    // Regal Royal Cape / Cloak (flowing gracefully behind)
-    const capeGeo = new THREE.PlaneGeometry(8, 15, 12, 12);
-    const capeMat = new THREE.MeshStandardMaterial({
-        color: 0x1a0033,
-        emissive: 0x330066,
-        roughness: 0.5,
-        side: THREE.DoubleSide
-    });
-    const cape = new THREE.Mesh(capeGeo, capeMat);
-    cape.position.set(0, 15, -1.8);
-    cape.rotation.x = 0.22;
-    princessMesh.add(cape);
-
-    // Smooth Faceless Head (mysterious, noble, faceless aesthetic as requested)
-    const headGeo = new THREE.SphereGeometry(1.8, 32, 32);
-    const headMat = new THREE.MeshStandardMaterial({
-        color: 0xffdfd3,
-        roughness: 0.4,
-        metalness: 0.1
-    });
-    const head = new THREE.Mesh(headGeo, headMat);
-    head.position.set(0, 21.2, 0);
-    princessMesh.add(head);
-
-    // Crown Base Ring & Points
-    const crownGroup = new THREE.Group();
-    crownGroup.position.set(0, 23.2, 0);
-
-    const ringGeo = new THREE.TorusGeometry(1.3, 0.2, 16, 32);
-    const crownMat = new THREE.MeshStandardMaterial({
-        color: 0xffd700,
-        metalness: 0.95,
-        roughness: 0.1,
-        emissive: 0xb38f00
-    });
-    const ring = new THREE.Mesh(ringGeo, crownMat);
-    ring.rotation.x = Math.PI / 2;
-    crownGroup.add(ring);
-
-    // Crown Peaks (5 Golden Spikes with glowing jewels)
-    for (let k = 0; k < 5; k++) {
-        const ca = (k / 5) * Math.PI * 2;
-        const spikeGeo = new THREE.ConeGeometry(0.3, 1.2, 8);
-        const spike = new THREE.Mesh(spikeGeo, crownMat);
-        spike.position.set(Math.cos(ca) * 1.3, 0.6, Math.sin(ca) * 1.3);
-        crownGroup.add(spike);
-    }
-
-    princessMesh.add(crownGroup);
-
-    // Glowing Crown Light Sprite
-    const crownGlowTex = createGlowSpriteTexture('rgba(255, 215, 0, 0.9)', 'rgba(255, 105, 180, 0.2)');
-    const crownGlowMat = new THREE.SpriteMaterial({
-        map: crownGlowTex,
-        blending: THREE.AdditiveBlending,
-        transparent: true
-    });
-    crownGlowSprite = new THREE.Sprite(crownGlowMat);
-    crownGlowSprite.scale.set(12, 12, 1);
-    crownGlowSprite.position.set(0, 23.5, 0);
-    princessMesh.add(crownGlowSprite);
-
-    princessTerrainGroup.add(princessMesh);
-    scene.add(princessTerrainGroup);
-}
 
 function createGalaxyAndInfinity() {
     const count = 35000; // Ultra dense, realistic galaxy with 35,000 stars!
@@ -1461,7 +1312,7 @@ function animate(timestamp) {
 
         // Stage 1: Zoom in on Earth (16.0s - 23.0s)
         if (elapsed > 16.0 && elapsed <= 23.0) {
-            setCaption("Para la princesa de mi vida, mi reina Ana...");
+            setCaption("Mi amor por ti es más grande que esto");
 
             if (earthMesh) {
                 // Camera smoothly follows Earth as it orbits the Sun
@@ -1480,30 +1331,25 @@ function animate(timestamp) {
 
         // Stage 2: Zoom to the Sun (23.0s - 29.0s)
         else if (elapsed > 23.0 && elapsed <= 29.0) {
-            setCaption("Tu luz ilumina mi reino más que esta estrella majestuosa");
+            setCaption("Mi amor por ti es más grande que esta estrella");
 
             const targetCamPos = new THREE.Vector3(0, 15, 45);
             camera.position.lerp(targetCamPos, 0.05);
             camera.lookAt(0, 0, 0);
         }
 
-        // Stage 3: Full Solar System Overview & Princess Reveal (29.0s - 36.0s)
+        // Stage 3: Full Solar System Overview (29.0s - 36.0s)
         else if (elapsed > 29.0 && elapsed <= 36.0) {
-            setCaption("Ni todo este universo se compara a la nobleza de tu alma, mi princesa Ana");
+            setCaption("Esto no es ni siquiera el 1% de mi amor para ti mi querida");
 
-            if (princessTerrainGroup) {
-                princessTerrainGroup.visible = true;
-                if (princessMesh) princessMesh.rotation.y += 0.008;
-            }
-
-            const targetCamPos = new THREE.Vector3(0, 120, 240);
+            const targetCamPos = new THREE.Vector3(0, 140, 260);
             camera.position.lerp(targetCamPos, 0.04);
             camera.lookAt(0, 0, 0);
         }
 
         // Stage 4: Turn Camera into Deep Space & Warp Speed Travel (36.0s - 42.0s)
         else if (elapsed > 36.0 && elapsed <= 42.0) {
-            setCaption("Cruzando el espacio sagrado en busca de tu amor eterno...");
+            setCaption("Viajando más allá de las estrellas por ti...");
 
             warpLinesGroup.visible = true;
 
@@ -1557,7 +1403,7 @@ function animate(timestamp) {
 
         // Stage 5: Extended Arrival at Black Hole (42.0s - 52.0s)
         if (elapsed > 42.0 && elapsed <= 52.0) {
-            setCaption("Mi devoción por ti vence a cualquier fuerza cósmica, mi princesa");
+            setCaption("Mi amor por ti supera a un agujero negro y es capaz de entrar y volver de él por ti");
 
             warpLinesGroup.visible = false;
             blackHoleGroup.visible = true;
@@ -1572,7 +1418,7 @@ function animate(timestamp) {
 
         // Stage 6: Transition to Separate Galaxy Scene in Deep Space (52.0s - 61.0s)
         else if (elapsed > 52.0 && elapsed <= 61.0) {
-            setCaption("Porque ante mis ojos siempre serás mi reina y mi princesa divina...");
+            setCaption("Mi amor por ti no tiene límite, por más que tratara de mostrarte el universo no podría ni siquiera mostrarte el 1% de mi amor por vos por que es...");
 
             // Black Hole scene fades / yields to separate Galaxy scene
             blackHoleGroup.visible = false;
@@ -1588,7 +1434,7 @@ function animate(timestamp) {
 
         // Stage 7: Infinity Symbol Morphing (61.0s onwards)
         else if (elapsed > 61.0) {
-            setCaption("Porque mi amor por ti es infinito, mi princesa Ana 👑❤️");
+            setCaption("Porque mi amor por ti es INFINITO ❤️");
 
             blackHoleGroup.visible = false;
             galaxyParticles.rotation.y += 0.001;
