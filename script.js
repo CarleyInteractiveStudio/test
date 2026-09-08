@@ -1160,12 +1160,12 @@ function buildBeautifulBouquetGroup() {
 function createCameraFlowerBouquet() {
     cameraFlowerBouquet = buildBeautifulBouquetGroup();
 
-    // Position at lower-left of 1st-person camera view
-    cameraFlowerBouquet.position.set(-7.5, -4.5, -11);
-    cameraFlowerBouquet.rotation.y = 0.35;
-    cameraFlowerBouquet.rotation.x = -0.2;
-    cameraFlowerBouquet.rotation.z = -0.15;
-    cameraFlowerBouquet.scale.set(0.42, 0.42, 0.42);
+    // Position at lower-left of 1st-person camera view, rotated so roses face directly towards camera
+    cameraFlowerBouquet.position.set(-7.0, -4.8, -10);
+    cameraFlowerBouquet.rotation.x = Math.PI * 0.42; // Tilt crown of roses directly toward viewer
+    cameraFlowerBouquet.rotation.y = -0.2;
+    cameraFlowerBouquet.rotation.z = -0.1;
+    cameraFlowerBouquet.scale.set(0.45, 0.45, 0.45);
 
     cameraFlowerBouquet.visible = false;
     camera.add(cameraFlowerBouquet);
@@ -2040,24 +2040,26 @@ function animate(timestamp) {
 
         const time3D = elapsed - 16.0;
 
-        // Reveal Letter Parchment Overlay ONLY AFTER Gift Box Cinematics complete (at 18s)!
-        setLetterVisible(time3D >= 18.0);
+        // Reveal Letter Parchment Overlay EXACTLY when the envelope opens and letter unfolds (time3D >= 15.5s)!
+        setLetterVisible(time3D >= 15.5);
 
         // Keep 3D Flower bouquet attached to camera (1st person view) after it rises out!
         if (cameraFlowerBouquet) {
             cameraFlowerBouquet.visible = time3D >= 10.0;
-            if (cameraFlowerBouquet.visible) {
-                cameraFlowerBouquet.rotation.y = 0.3 + Math.sin(time3D * 1.2) * 0.05;
-            }
         }
 
-        // Letter text starts scrolling ONLY after 18 seconds (when cinematics finish)!
-        if (creditsContent) {
-            if (time3D >= 18.0) {
-                const scrollOffset = (time3D - 18.0) * 15; // Smooth slow scroll pace
-                creditsContent.style.transform = `translateY(-${scrollOffset}px)`;
+        // Letter text starts scrolling ONLY after 16.5 seconds using viewport scrollTop so native scrolling remains fully functional!
+        const textViewport = document.querySelector('.scroll-text-viewport');
+        if (textViewport && creditsContent) {
+            if (time3D >= 16.5) {
+                const maxScroll = Math.max(0, creditsContent.scrollHeight - textViewport.clientHeight);
+                const targetScroll = (time3D - 16.5) * 14;
+                // Clamp scroll so final paragraph stays resting at the bottom and user can manually scroll back up anytime!
+                if (!isDraggingLetter) {
+                    textViewport.scrollTop = Math.min(targetScroll, maxScroll);
+                }
             } else {
-                creditsContent.style.transform = `translateY(0px)`;
+                textViewport.scrollTop = 0;
             }
         }
 
@@ -2068,15 +2070,15 @@ function animate(timestamp) {
             c.light.intensity = 1.5 * flicker;
         });
 
-        // Determine current active scene based on time3D timeline
-        if (time3D <= 18.0) currentActiveScene = 0;       // Gift box: Sequential Unpacking Cinematics
-        else if (time3D <= 38.0) currentActiveScene = 1;  // Earth (Stats & Birth)
-        else if (time3D <= 52.0) currentActiveScene = 2;  // Moon ISOLATED ("su hermosa sonrisa brilla más que la luna")
-        else if (time3D <= 65.0) currentActiveScene = 3;  // Sun ("su mirada atractiva alimenta de energía nuestra estrella")
-        else if (time3D <= 78.0) currentActiveScene = 4;  // Solar System ("y si comparamos nuestro sistema solar")
-        else if (time3D <= 98.0) currentActiveScene = 5;  // Universe & Multiverses ("o si pongamos el universo entero... Dios...")
-        else if (time3D <= 118.0) currentActiveScene = 6; // Black Hole ("el loco que entraría y saldría de un agujero negro")
-        else if (time3D <= 138.0) currentActiveScene = 7; // Infinity 3D ("porque mi amor para ella es infinito")
+        // Determine current active scene based on time3D timeline, giving plenty of time so text reaches 60%+ down viewport before scene changes
+        if (time3D <= 16.5) currentActiveScene = 0;       // Gift box: Sequential Unpacking Cinematics
+        else if (time3D <= 36.0) currentActiveScene = 1;  // Earth (Stats & Birth)
+        else if (time3D <= 56.0) currentActiveScene = 2;  // Moon ISOLATED ("su hermosa sonrisa brilla más que la luna")
+        else if (time3D <= 76.0) currentActiveScene = 3;  // Sun ("su mirada atractiva alimenta de energía nuestra estrella")
+        else if (time3D <= 96.0) currentActiveScene = 4;  // Solar System ("y si comparamos nuestro sistema solar")
+        else if (time3D <= 126.0) currentActiveScene = 5; // Universe & Multiverses ("o si pongamos el universo entero... Dios...")
+        else if (time3D <= 156.0) currentActiveScene = 6; // Black Hole ("el loco que entraría y saldría de un agujero negro")
+        else if (time3D <= 186.0) currentActiveScene = 7; // Infinity 3D ("porque mi amor para ella es infinito")
         else currentActiveScene = 8;                      // Grand Finale
 
         // --- Stage 0: 3D Gift Box Sequential Unpacking Cinematics (0s - 18s) ---
