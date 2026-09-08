@@ -5,19 +5,17 @@ const ctx2d = canvas2d.getContext('2d');
 const captionContainer = document.getElementById('caption-container');
 const captionText = document.getElementById('caption-text');
 
-const letterOverlay = document.getElementById('letter-overlay');
-const letterText = document.getElementById('letter-text');
-let currentLetterText = '';
+const letterSheetContainer = document.getElementById('letter-sheet-container');
+const creditsContent = document.getElementById('credits-content');
 
-function setLetter(text) {
-    if (!text) {
-        if (letterOverlay) letterOverlay.classList.add('hidden');
+let currentActiveScene = 0;
+
+function setLetterVisible(visible) {
+    if (!letterSheetContainer) return;
+    if (visible) {
+        letterSheetContainer.classList.remove('hidden');
     } else {
-        if (letterOverlay) letterOverlay.classList.remove('hidden');
-        if (currentLetterText !== text) {
-            currentLetterText = text;
-            if (letterText) letterText.textContent = text;
-        }
+        letterSheetContainer.classList.add('hidden');
     }
 }
 
@@ -180,65 +178,6 @@ function setCaption(text) {
 // 2D CANVAS ANIMATIONS (Heart -> Rose -> For you -> ANA)
 // ==========================================
 
-class HeartInfinityParticle {
-    constructor(offset) {
-        this.t = offset;
-        this.speed = 0.02 + Math.random() * 0.025;
-        this.size = Math.random() * 2.2 + 1.2;
-        this.hue = Math.random() * 50 + 330; // Glowing magenta / rose / gold
-        this.scaleMult = 10 + Math.random() * 4;
-        this.x = 0;
-        this.y = 0;
-        this.trail = [];
-    }
-
-    update() {
-        this.t += this.speed;
-        const scale = heartScale * this.scaleMult;
-        const denom = 1 + Math.sin(this.t) * Math.sin(this.t);
-        const x = centerX + (scale * Math.cos(this.t)) / denom;
-        const y = centerY - 18 + (scale * Math.sin(this.t) * Math.cos(this.t)) / denom;
-
-        this.x = x;
-        this.y = y;
-
-        this.trail.push({ x: this.x, y: this.y });
-        if (this.trail.length > 5) this.trail.shift();
-    }
-
-    draw(ctx) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-
-        if (this.trail.length > 1) {
-            ctx.beginPath();
-            ctx.moveTo(this.trail[0].x, this.trail[0].y);
-            for (let i = 1; i < this.trail.length; i++) {
-                ctx.lineTo(this.trail[i].x, this.trail[i].y);
-            }
-            ctx.strokeStyle = `hsla(${this.hue}, 100%, 75%, 0.55)`;
-            ctx.lineWidth = this.size * 0.9;
-            ctx.stroke();
-        }
-
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${this.hue}, 100%, 85%, 0.95)`;
-        ctx.fill();
-
-        ctx.restore();
-    }
-}
-
-let heartInfinityParticles = [];
-
-function initHeartInfinityParticles() {
-    heartInfinityParticles = [];
-    const count = 50;
-    for (let i = 0; i < count; i++) {
-        heartInfinityParticles.push(new HeartInfinityParticle((i / count) * Math.PI * 2));
-    }
-}
 
 function getHeartPoint(t) {
     const x = 16 * Math.pow(Math.sin(t), 3);
@@ -538,6 +477,53 @@ window.addEventListener('mousemove', handlePointer);
 window.addEventListener('touchmove', handlePointer);
 window.addEventListener('click', handlePointer);
 
+// Drag Interactivity for 3D Letter Sheet UI
+let isDraggingLetter = false;
+let dragStartX = 0, dragStartY = 0;
+let sheetLeft = 0, sheetTop = 0;
+
+if (letterSheetContainer) {
+    const startDrag = (e) => {
+        isDraggingLetter = true;
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        dragStartX = clientX;
+        dragStartY = clientY;
+
+        const rect = letterSheetContainer.getBoundingClientRect();
+        sheetLeft = rect.left;
+        sheetTop = rect.top;
+
+        letterSheetContainer.style.bottom = 'auto';
+        letterSheetContainer.style.right = 'auto';
+        letterSheetContainer.style.left = `${sheetLeft}px`;
+        letterSheetContainer.style.top = `${sheetTop}px`;
+    };
+
+    const doDrag = (e) => {
+        if (!isDraggingLetter) return;
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        const deltaX = clientX - dragStartX;
+        const deltaY = clientY - dragStartY;
+
+        letterSheetContainer.style.left = `${sheetLeft + deltaX}px`;
+        letterSheetContainer.style.top = `${sheetTop + deltaY}px`;
+    };
+
+    const stopDrag = () => {
+        isDraggingLetter = false;
+    };
+
+    letterSheetContainer.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', doDrag);
+    window.addEventListener('mouseup', stopDrag);
+
+    letterSheetContainer.addEventListener('touchstart', startDrag, { passive: true });
+    window.addEventListener('touchmove', doDrag, { passive: true });
+    window.addEventListener('touchend', stopDrag);
+}
+
 // ==========================================
 // PROCEDURAL CANVAS TEXTURES FOR THREE.JS
 // ==========================================
@@ -753,8 +739,8 @@ let warpLinesGroup, warpLines = [];
 let galaxyParticles, galaxyGeometry, multiverseGroup = [];
 let particleTexture;
 
-// 3D Envelope, Seal, Letter Paper & First-Person Hand
-let envelopeGroup, envelopeFlap, waxSealMesh, letterPaperMesh, handGroup;
+// 3D Gift Box, Lid, Ribbon, Popping Hearts & Letter Paper
+let giftBoxGroup, giftLidGroup, giftPaperMesh, poppingHearts = [];
 
 // THREE Loading Manager for Preloader
 let isExperienceReady = false;
@@ -844,8 +830,8 @@ function init3D() {
     // Galaxy & Infinity
     createGalaxyAndInfinity();
 
-    // 3D Envelope & First-Person Hands
-    create3DEnvelopeAndHands();
+    // 3D Gift Box & Popping Hearts
+    create3DGiftBoxAndHearts();
 }
 
 function createStarfield() {
@@ -1135,97 +1121,121 @@ function createCinematicBlackHole() {
 }
 
 
-function create3DEnvelopeAndHands() {
-    envelopeGroup = new THREE.Group();
-    envelopeGroup.position.set(0, 0, 40); // Close to camera initial position
+function create3DGiftBoxAndHearts() {
+    giftBoxGroup = new THREE.Group();
+    giftBoxGroup.position.set(0, -10, 40); // Centered in screen space
 
-    // 1. Envelope Body (Royal Gold & Deep Burgundy Velvet Box/Envelope)
-    const envBodyGeo = new THREE.BoxGeometry(22, 14, 1.2);
-    const envMat = new THREE.MeshStandardMaterial({
-        color: 0x3d001a,
-        roughness: 0.35,
-        metalness: 0.65,
-        emissive: 0x1a000a
+    // 1. Velvet Red Gift Box Base
+    const boxGeo = new THREE.BoxGeometry(18, 14, 18);
+    const velvetMat = new THREE.MeshStandardMaterial({
+        color: 0x800020, // Burgundy velvet
+        roughness: 0.3,
+        metalness: 0.5,
+        emissive: 0x2b000b
     });
-    const envBody = new THREE.Mesh(envBodyGeo, envMat);
-    envelopeGroup.add(envBody);
+    const boxBase = new THREE.Mesh(boxGeo, velvetMat);
+    giftBoxGroup.add(boxBase);
 
-    // Gold Trim Borders around Envelope
-    const trimGeo = new THREE.BoxGeometry(22.4, 14.4, 0.2);
+    // Gold Ribbon Bands around box base
     const goldMat = new THREE.MeshStandardMaterial({
         color: 0xffd700,
         metalness: 0.9,
         roughness: 0.15,
-        emissive: 0x886600
+        emissive: 0x664400
     });
-    const trim = new THREE.Mesh(trimGeo, goldMat);
-    trim.position.z = -0.6;
-    envelopeGroup.add(trim);
+    const ribbonV = new THREE.Mesh(new THREE.BoxGeometry(18.3, 14.1, 3.2), goldMat);
+    const ribbonH = new THREE.Mesh(new THREE.BoxGeometry(3.2, 14.1, 18.3), goldMat);
+    giftBoxGroup.add(ribbonV);
+    giftBoxGroup.add(ribbonH);
 
-    // 2. Envelope Top Triangular Flap (Rotates open)
-    envelopeFlap = new THREE.Group();
-    envelopeFlap.position.set(0, 7, 0.6); // Pivot at top edge of envelope
+    // 2. Gift Box Lid (Removable / Rotates open)
+    giftLidGroup = new THREE.Group();
+    giftLidGroup.position.set(0, 7, 0); // At top edge of box
 
-    const flapShape = new THREE.Shape();
-    flapShape.moveTo(-11, 0);
-    flapShape.lineTo(11, 0);
-    flapShape.lineTo(0, -6.8);
-    flapShape.closePath();
+    const lidGeo = new THREE.BoxGeometry(19, 3.2, 19);
+    const lidMesh = new THREE.Mesh(lidGeo, velvetMat);
+    lidMesh.position.set(0, 1.6, 0);
+    giftLidGroup.add(lidMesh);
 
-    const flapExtrudeGeo = new THREE.ExtrudeGeometry(flapShape, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1 });
-    const flapMesh = new THREE.Mesh(flapExtrudeGeo, envMat);
-    flapMesh.position.set(0, 0, -0.15);
-    envelopeFlap.add(flapMesh);
+    // Ribbon cross on lid
+    const lidRibV = new THREE.Mesh(new THREE.BoxGeometry(19.3, 3.3, 3.4), goldMat);
+    lidRibV.position.set(0, 1.6, 0);
+    const lidRibH = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.3, 19.3), goldMat);
+    lidRibH.position.set(0, 1.6, 0);
+    giftLidGroup.add(lidRibV);
+    giftLidGroup.add(lidRibH);
 
-    // 3. Wax Seal (Heart + Rose Emblem)
-    const sealGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.6, 32);
-    const sealMat = new THREE.MeshStandardMaterial({
-        color: 0xcc0033,
-        roughness: 0.2,
-        metalness: 0.7,
-        emissive: 0x440011
-    });
-    waxSealMesh = new THREE.Mesh(sealGeo, sealMat);
-    waxSealMesh.rotation.x = Math.PI / 2;
-    waxSealMesh.position.set(0, -3.5, 0.4);
-    envelopeFlap.add(waxSealMesh);
+    // Ribbon Bow on top
+    const bowGeo = new THREE.TorusGeometry(2.5, 0.6, 16, 32);
+    const bowLeft = new THREE.Mesh(bowGeo, goldMat);
+    bowLeft.rotation.y = Math.PI / 4;
+    bowLeft.position.set(-1.8, 4.2, 0);
+    const bowRight = new THREE.Mesh(bowGeo, goldMat);
+    bowRight.rotation.y = -Math.PI / 4;
+    bowRight.position.set(1.8, 4.2, 0);
+    giftLidGroup.add(bowLeft);
+    giftLidGroup.add(bowRight);
 
-    envelopeGroup.add(envelopeFlap);
+    giftBoxGroup.add(giftLidGroup);
 
-    // 4. Letter Paper Inside Envelope (Slides out & Unfolds)
-    const paperGeo = new THREE.PlaneGeometry(18, 12);
+    // 3. 3D Unfolding Letter Paper (slides upwards out of the interior of the box)
+    const paperGeo = new THREE.PlaneGeometry(15, 20);
     const paperMat = new THREE.MeshStandardMaterial({
-        color: 0xfffdf5,
+        color: 0xfffcf0,
         roughness: 0.8,
         side: THREE.DoubleSide
     });
-    letterPaperMesh = new THREE.Mesh(paperGeo, paperMat);
-    letterPaperMesh.position.set(0, 0, 0.1);
-    letterPaperMesh.visible = false;
-    envelopeGroup.add(letterPaperMesh);
+    giftPaperMesh = new THREE.Mesh(paperGeo, paperMat);
+    giftPaperMesh.position.set(0, 0, 0);
+    giftPaperMesh.visible = false;
+    giftBoxGroup.add(giftPaperMesh);
 
-    // 5. Stylized First-Person Hands (Holding and opening envelope)
-    handGroup = new THREE.Group();
+    // 4. Popping 3D Hearts (Burst out of the box when opened)
+    const heartShape = new THREE.Shape();
+    heartShape.moveTo(0, 0);
+    heartShape.bezierCurveTo(0, 0, -0.5, 0.8, -1.2, 0.8);
+    heartShape.bezierCurveTo(-2.0, 0.8, -2.0, -0.4, -2.0, -0.4);
+    heartShape.bezierCurveTo(-2.0, -1.2, -1.2, -1.8, 0, -2.6);
+    heartShape.bezierCurveTo(1.2, -1.8, 2.0, -1.2, 2.0, -0.4);
+    heartShape.bezierCurveTo(2.0, -0.4, 2.0, 0.8, 1.2, 0.8);
+    heartShape.bezierCurveTo(0.5, 0.8, 0, 0, 0, 0);
 
-    // Left Hand Grip
-    const handMat = new THREE.MeshStandardMaterial({ color: 0xffdfd3, roughness: 0.6 });
-    const leftPalmGeo = new THREE.BoxGeometry(4, 5, 2);
-    const leftPalm = new THREE.Mesh(leftPalmGeo, handMat);
-    leftPalm.position.set(-13, -3, 2);
-    leftPalm.rotation.z = -0.2;
-    handGroup.add(leftPalm);
+    const extrudeSettings = { depth: 0.5, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.2, bevelThickness: 0.2 };
+    const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
 
-    // Right Hand (Fingers lifting the seal)
-    const rightPalmGeo = new THREE.BoxGeometry(3.5, 4.5, 1.8);
-    const rightPalm = new THREE.Mesh(rightPalmGeo, handMat);
-    rightPalm.position.set(12, 1, 3);
-    rightPalm.rotation.z = 0.2;
-    handGroup.add(rightPalm);
+    const heartColors = [0xff0055, 0xff3388, 0xff66aa, 0xffd700, 0xff1a53];
 
-    envelopeGroup.add(handGroup);
+    for (let i = 0; i < 25; i++) {
+        const hMat = new THREE.MeshStandardMaterial({
+            color: heartColors[i % heartColors.length],
+            metalness: 0.4,
+            roughness: 0.2,
+            emissive: 0x440011
+        });
+        const heartMesh = new THREE.Mesh(heartGeo, hMat);
+        const scale = 0.6 + Math.random() * 0.8;
+        heartMesh.scale.set(scale, scale, scale);
 
-    envelopeGroup.visible = false;
-    scene.add(envelopeGroup);
+        heartMesh.position.set(
+            (Math.random() - 0.5) * 12,
+            (Math.random() - 0.5) * 4,
+            (Math.random() - 0.5) * 12
+        );
+        heartMesh.visible = false;
+
+        giftBoxGroup.add(heartMesh);
+        poppingHearts.push({
+            mesh: heartMesh,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: 0.8 + Math.random() * 1.2,
+            vz: (Math.random() - 0.5) * 0.8,
+            rotX: (Math.random() - 0.5) * 0.08,
+            rotY: (Math.random() - 0.5) * 0.08
+        });
+    }
+
+    giftBoxGroup.visible = false;
+    scene.add(giftBoxGroup);
 }
 
 function createGalaxyAndInfinity() {
@@ -1368,10 +1378,8 @@ function animate(timestamp) {
         ctx2d.fillRect(0, 0, width, height);
     }
 
-    // 1. Heart with Infinity Light Particle Loop (0.5s - 4.0s)
+    // 1. Glowing Neon Heart Drawing (0.5s - 4.0s)
     if (elapsed > 0.5 && elapsed <= 4.0) {
-        if (heartInfinityParticles.length === 0) initHeartInfinityParticles();
-
         const hProg = Math.min(1, (elapsed - 0.5) / 2.5);
         const hFade = elapsed > 3.2 ? Math.max(0, 1 - (elapsed - 3.2) / 0.8) : 1;
 
@@ -1380,7 +1388,7 @@ function animate(timestamp) {
         ctx2d.lineWidth = 3.5;
         ctx2d.strokeStyle = '#ff0055';
         ctx2d.shadowColor = '#ff0055';
-        ctx2d.shadowBlur = 10;
+        ctx2d.shadowBlur = 8;
         ctx2d.beginPath();
 
         const steps = 180;
@@ -1392,13 +1400,6 @@ function animate(timestamp) {
             else ctx2d.lineTo(pt.x, pt.y);
         }
         ctx2d.stroke();
-
-        // Draw infinity-loop light particles inside and around heart
-        for (let p = 0; p < heartInfinityParticles.length; p++) {
-            heartInfinityParticles[p].update();
-            heartInfinityParticles[p].draw(ctx2d);
-        }
-
         ctx2d.restore();
     }
 
@@ -1482,56 +1483,85 @@ function animate(timestamp) {
 
         if (sunMesh) sunMesh.rotation.y += 0.005;
 
-        // --- Stage 0: 3D Envelope & First-Person Hand Opening (16.0s - 22.0s) ---
-        if (elapsed > 16.0 && elapsed <= 22.0) {
-            setCaption("");
-            setLetter("Hace 5,844 días, un día como hoy, un 9 de septiembre pero del 2010, el mundo tuvo la oportunidad de conocer al ser más hermoso jamás existido...");
+        // Movie credit text vertical scrolling inside sheet
+        const time3D = elapsed - 16.0;
+        setLetterVisible(time3D > 1.5);
 
-            if (envelopeGroup) envelopeGroup.visible = true;
+        if (creditsContent && time3D > 2.0) {
+            const scrollOffset = (time3D - 2.0) * 18; // 18px per second smooth upward crawl
+            creditsContent.style.transform = `translateY(-${scrollOffset}px)`;
+        }
+
+        // Determine current active scene based on time sequence
+        if (time3D <= 6.0) currentActiveScene = 0;       // Gift box & intro
+        else if (time3D <= 12.0) currentActiveScene = 1;  // Moon
+        else if (time3D <= 18.0) currentActiveScene = 2;  // Earth
+        else if (time3D <= 24.0) currentActiveScene = 3;  // Sun
+        else if (time3D <= 30.0) currentActiveScene = 4;  // Solar System
+        else if (time3D <= 37.0) currentActiveScene = 5;  // Future wife Ana / Deep Space
+        else if (time3D <= 45.0) currentActiveScene = 6;  // Black Hole
+        else if (time3D <= 52.0) currentActiveScene = 7;  // Universe / Galaxy
+        else if (time3D <= 58.0) currentActiveScene = 8;  // Multiverse
+        else currentActiveScene = 9;                      // Grand Finale
+
+        // --- Stage 0: 3D Gift Box Opening & Popping Hearts (16.0s - 22.0s) ---
+        if (currentActiveScene === 0) {
+            if (giftBoxGroup) giftBoxGroup.visible = true;
             if (solarSystemGroup) solarSystemGroup.visible = false;
 
-            // Animate envelope flap opening & paper sliding out
-            const openProg = Math.min(1, Math.max(0, (elapsed - 17.5) / 2.5));
-            if (envelopeFlap) envelopeFlap.rotation.x = -Math.PI * 0.85 * openProg;
-            if (letterPaperMesh) {
-                letterPaperMesh.visible = openProg > 0.1;
-                letterPaperMesh.position.y = openProg * 9;
+            const openProg = Math.min(1, Math.max(0, (time3D - 1.0) / 2.5));
+            if (giftLidGroup) {
+                giftLidGroup.rotation.x = -Math.PI * 0.75 * openProg;
+                giftLidGroup.position.z = -openProg * 10;
             }
+
+            if (giftPaperMesh) {
+                giftPaperMesh.visible = openProg > 0.1;
+                giftPaperMesh.position.y = openProg * 12;
+            }
+
+            // Animate popping 3D hearts bursting out
+            poppingHearts.forEach(h => {
+                h.mesh.visible = openProg > 0.2;
+                if (h.mesh.visible) {
+                    h.mesh.position.x += h.vx * 0.4;
+                    h.mesh.position.y += h.vy * 0.4;
+                    h.mesh.position.z += h.vz * 0.4;
+                    h.mesh.rotation.x += h.rotX;
+                    h.mesh.rotation.y += h.rotY;
+                }
+            });
 
             const targetCamPos = new THREE.Vector3(0, 0, 85);
             camera.position.lerp(targetCamPos, 0.05);
-            camera.lookAt(0, 0, 40);
+            camera.lookAt(0, -5, 40);
         }
 
         // --- Stage 1: The Moon (22.0s - 28.0s) ---
-        else if (elapsed > 22.0 && elapsed <= 28.0) {
-            setLetter("...tan hermosa que la Luna la admiraba...");
-
-            if (envelopeGroup) {
-                envelopeGroup.position.lerp(new THREE.Vector3(25, -15, 30), 0.05);
-                envelopeGroup.scale.lerp(new THREE.Vector3(0.5, 0.5, 0.5), 0.05);
+        else if (currentActiveScene === 1) {
+            if (giftBoxGroup) {
+                giftBoxGroup.position.lerp(new THREE.Vector3(30, -25, 20), 0.05);
+                giftBoxGroup.scale.lerp(new THREE.Vector3(0.4, 0.4, 0.4), 0.05);
             }
             if (solarSystemGroup) solarSystemGroup.visible = true;
 
             if (moonOnlyMesh) {
-                const targetCamPos = new THREE.Vector3(-80, 10, 480);
+                const targetCamPos = new THREE.Vector3(-95, 10, 480);
                 camera.position.lerp(targetCamPos, 0.06);
                 camera.lookAt(-80, 10, 450);
             }
         }
 
-        // --- Stage 2: Earth & Angel Disguise (28.0s - 34.0s) ---
-        else if (elapsed > 28.0 && elapsed <= 34.0) {
-            setLetter("...tan hermosa que se piensa que ella no es de la Tierra, tal vez es un ángel disfrazada de humana...");
-
+        // --- Stage 2: Earth (28.0s - 34.0s) ---
+        else if (currentActiveScene === 2) {
             if (earthMesh) {
                 const earthWorldPos = new THREE.Vector3();
                 earthMesh.getWorldPosition(earthWorldPos);
 
                 const targetCamPos = new THREE.Vector3(
-                    earthWorldPos.x + 12,
-                    earthWorldPos.y + 5,
-                    earthWorldPos.z + 18
+                    earthWorldPos.x - 12,
+                    earthWorldPos.y + 6,
+                    earthWorldPos.z + 24
                 );
                 camera.position.lerp(targetCamPos, 0.06);
                 camera.lookAt(earthWorldPos);
@@ -1539,27 +1569,21 @@ function animate(timestamp) {
         }
 
         // --- Stage 3: The Sun (34.0s - 40.0s) ---
-        else if (elapsed > 34.0 && elapsed <= 40.0) {
-            setLetter("...su sonrisa brilla más que el Sol...");
-
-            const targetCamPos = new THREE.Vector3(0, 15, 45);
+        else if (currentActiveScene === 3) {
+            const targetCamPos = new THREE.Vector3(-25, 15, 65);
             camera.position.lerp(targetCamPos, 0.05);
             camera.lookAt(0, 0, 0);
         }
 
         // --- Stage 4: Full Solar System (40.0s - 47.0s) ---
-        else if (elapsed > 40.0 && elapsed <= 47.0) {
-            setLetter("...nuestro sistema solar es demasiado pequeño en comparación de su bella mirada...");
-
-            const targetCamPos = new THREE.Vector3(0, 140, 260);
+        else if (currentActiveScene === 4) {
+            const targetCamPos = new THREE.Vector3(-60, 160, 310);
             camera.position.lerp(targetCamPos, 0.04);
             camera.lookAt(0, 0, 0);
         }
 
-        // --- Stage 5: Future Wife Ana & Deep Space Travel (47.0s - 54.0s) ---
-        else if (elapsed > 47.0 && elapsed <= 54.0) {
-            setLetter("Aquella ser llamada Ana es la encarnación misma de la hermosura en persona y soy muy afortunado en tenerla como futura esposa...");
-
+        // --- Stage 5: Deep Space Warp Travel (47.0s - 54.0s) ---
+        else if (currentActiveScene === 5) {
             warpLinesGroup.visible = true;
 
             const warpPositions = warpLinesGroup.children[0].geometry.attributes.position.array;
@@ -1573,7 +1597,7 @@ function animate(timestamp) {
             }
             warpLinesGroup.children[0].geometry.attributes.position.needsUpdate = true;
 
-            const targetCamPos = new THREE.Vector3(0, 0, -1200);
+            const targetCamPos = new THREE.Vector3(-15, 0, -1200);
             camera.position.lerp(targetCamPos, 0.04);
             camera.lookAt(0, 0, -1800);
         }
@@ -1605,63 +1629,54 @@ function animate(timestamp) {
             bhParticlesGeo.attributes.position.needsUpdate = true;
         }
 
-        // --- Stage 6: Black Hole (54.0s - 62.0s) ---
-        else if (elapsed > 54.0 && elapsed <= 62.0) {
-            setLetter("...me he vuelto tan loco por ella que entraría y saldría de un agujero negro si me lo pidiera...");
-
+        // --- Stage 6: Gargantua Black Hole (54.0s - 62.0s) ---
+        else if (currentActiveScene === 6) {
             warpLinesGroup.visible = false;
             blackHoleGroup.visible = true;
 
             if (accretionDiskMesh) accretionDiskMesh.rotation.z += 0.012;
             if (lensingTopMesh) lensingTopMesh.rotation.z -= 0.008;
 
-            const targetCamPos = new THREE.Vector3(0, 8, -1725);
+            const targetCamPos = new THREE.Vector3(-30, 10, -1725);
             camera.position.lerp(targetCamPos, 0.05);
             camera.lookAt(0, 0, -1800);
         }
 
         // --- Stage 7: Universe / Galaxy (62.0s - 69.0s) ---
-        else if (elapsed > 62.0 && elapsed <= 69.0) {
-            setLetter("...mi amor por ella es más grande que cualquier universo...");
-
+        else if (currentActiveScene === 7) {
             blackHoleGroup.visible = false;
-            galaxyParticles.material.opacity = Math.min(1, (elapsed - 62.0) / 2.5);
+            galaxyParticles.material.opacity = Math.min(1, (time3D - 45.0) / 2.5);
             galaxyParticles.rotation.y += 0.004;
 
-            const targetCamPos = new THREE.Vector3(0, 350, -2880);
+            const targetCamPos = new THREE.Vector3(-80, 350, -2880);
             camera.position.lerp(targetCamPos, 0.035);
             camera.lookAt(0, 0, -3500);
         }
 
         // --- Stage 8: Multiverse (69.0s - 76.0s) ---
-        else if (elapsed > 69.0 && elapsed <= 76.0) {
-            setLetter("...y multiverso...");
-
+        else if (currentActiveScene === 8) {
             if (multiverseGroup) {
                 multiverseGroup.visible = true;
                 multiverseGroup.rotation.y += 0.003;
             }
 
-            const targetCamPos = new THREE.Vector3(0, 450, -2600);
+            const targetCamPos = new THREE.Vector3(-100, 450, -2600);
             camera.position.lerp(targetCamPos, 0.035);
             camera.lookAt(0, 0, -3500);
         }
 
-        // --- Stage 9: Infinity Symbol (76.0s onwards) ---
-        else if (elapsed > 76.0) {
-            setLetter("...mi amor por ella al igual que su belleza es INFINITA ❤️🎂✨");
-
+        // --- Stage 9: Grand Finale / Universe Fade-out & Letter Paper Dissolve into Light ---
+        else if (currentActiveScene === 9) {
             if (multiverseGroup) multiverseGroup.visible = false;
-            galaxyParticles.rotation.y += 0.001;
-
-            const positions = galaxyGeometry.attributes.position.array;
-            const targetInfinity = galaxyGeometry.attributes.infinityPosition.array;
-
-            const morphFactor = Math.min(1, (elapsed - 76.0) / 4.0);
-            for (let i = 0; i < positions.length; i++) {
-                positions[i] = positions[i] * (1 - morphFactor * 0.02) + targetInfinity[i] * (morphFactor * 0.02);
+            if (galaxyParticles) {
+                // Smoothly fade galaxy particles out to transition into pure light
+                galaxyParticles.material.opacity = Math.max(0, galaxyParticles.material.opacity - 0.015);
             }
-            galaxyGeometry.attributes.position.needsUpdate = true;
+
+            // Hide letter sheet paper container as it dissolves into particles
+            if (letterSheetContainer) {
+                letterSheetContainer.style.opacity = Math.max(0, parseFloat(letterSheetContainer.style.opacity || 1) - 0.02);
+            }
 
             const targetCamPos = new THREE.Vector3(0, 0, -3350);
             camera.position.lerp(targetCamPos, 0.04);

@@ -118,45 +118,85 @@ html, body {
     background-color: #000000;
 }
 
-/* Birthday 3D Letter Overlay Styling */
-#letter-overlay {
+/* Draggable 3D Letter Parchment Sheet Overlay */
+#letter-sheet-container {
     position: absolute;
     bottom: 5%;
-    right: 4%;
-    z-index: 15;
+    right: 5%;
+    z-index: 20;
     width: 380px;
+    height: 480px;
     max-width: 90vw;
-    background: linear-gradient(145deg, rgba(28, 12, 35, 0.88), rgba(10, 4, 18, 0.92));
-    border: 1px solid rgba(255, 215, 0, 0.5);
-    border-radius: 16px;
-    padding: 22px 25px;
-    box-shadow: 0 0 30px rgba(255, 0, 127, 0.35), inset 0 0 15px rgba(255, 215, 0, 0.15);
-    backdrop-filter: blur(10px);
-    transition: opacity 1.2s ease, transform 1.2s ease;
+    max-height: 70vh;
+    background: linear-gradient(145deg, rgba(35, 12, 30, 0.92), rgba(12, 4, 15, 0.95));
+    border: 2px solid rgba(255, 215, 0, 0.7);
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 0 35px rgba(255, 0, 127, 0.45), inset 0 0 20px rgba(255, 215, 0, 0.2);
+    backdrop-filter: blur(12px);
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    transition: opacity 1.0s ease, transform 0.1s ease-out;
 }
 
-#letter-overlay.hidden {
+#letter-sheet-container:active {
+    cursor: grabbing;
+}
+
+#letter-sheet-container.hidden {
     opacity: 0;
-    transform: translateY(30px);
     pointer-events: none;
+    transform: scale(0.8) translateY(50px);
 }
 
-.letter-header {
+.paper-inner-frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.paper-header {
     font-family: 'Great Vibes', cursive;
-    font-size: 1.9rem;
+    font-size: 1.85rem;
     color: #ffd700;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
-    margin-bottom: 12px;
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.9);
     text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+    margin-bottom: 12px;
 }
 
-#letter-text {
+.scroll-text-viewport {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+#credits-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    transition: transform 0.1s linear;
+}
+
+.credit-paragraph {
     font-family: 'Cinzel', serif;
     font-size: 1.05rem;
     line-height: 1.65;
     color: #fff8e7;
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
-    min-height: 110px;
+    margin-bottom: 110px; /* Space between paragraphs so each scene stays clean */
+    text-align: center;
+}
+
+.credit-paragraph.highlight {
+    font-size: 1.1rem;
+    color: #ffe066;
+    text-shadow: 0 0 12px rgba(255, 224, 102, 0.9), 0 0 20px rgba(255, 0, 127, 0.6);
+    margin-bottom: 50px;
 }
 
 #caption-container {

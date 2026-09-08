@@ -21,7 +21,11 @@ with sync_playwright() as p:
     page.goto(f"http://localhost:{PORT}/index.html")
     page.wait_for_timeout(2000)
 
-    # 1. Envelope opening stage (18s)
+    # Click start button if visible or invoke startExperience
+    page.evaluate("if (typeof startExperience === 'function') startExperience();")
+    page.wait_for_timeout(1000)
+
+    # 1. Gift box opening stage (18s)
     page.evaluate("window.setAnimationTime(18.0)")
     page.wait_for_timeout(800)
     page.screenshot(path="verify_letter_envelope.png")
