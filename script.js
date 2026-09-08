@@ -96,29 +96,29 @@ function playCosmicDrone(freq, duration = 6.0) {
 function updateAudioStage(elapsed) {
     if (!audioCtx || !isAudioActive) return;
 
-    // Stage 1: Intro (Heart & Rose) - Soft Romantic F# Major / D#m7 (261Hz, 329Hz, 392Hz, 523Hz)
+    // Stage 1: Intro (Heart & Rose)
     if (elapsed < 16.0) {
         if (currentAudioStage !== 0) {
             currentAudioStage = 0;
             playRomanticChord([261.63, 329.63, 392.00, 523.25], 6.0); // C major7 romantic
         }
     }
-    // Stage 2: Solar System Overview - Gentle Space Harmony (G3, B3, D4, F#4)
+    // Stage 2: Solar System Overview
     else if (elapsed >= 16.0 && elapsed < 36.0) {
         if (currentAudioStage !== 1) {
             currentAudioStage = 1;
             playRomanticChord([196.00, 246.94, 293.66, 369.99], 8.0);
         }
     }
-    // Stage 3: Speed Warp & Black Hole - Deep Cosmic Bass Drone + Gravity Resonator
+    // Stage 3: Speed Warp & Black Hole
     else if (elapsed >= 36.0 && elapsed < 52.0) {
         if (currentAudioStage !== 2) {
             currentAudioStage = 2;
-            playCosmicDrone(65.41, 10.0); // Deep C2 drone
+            playCosmicDrone(65.41, 10.0);
             playRomanticChord([130.81, 164.81, 196.00, 246.94], 10.0);
         }
     }
-    // Stage 4: Vast Galaxy Zoom & Infinity - Cosmic Uplifting Symphony
+    // Stage 4: Vast Galaxy Zoom & Infinity
     else if (elapsed >= 52.0) {
         if (currentAudioStage !== 3) {
             currentAudioStage = 3;
@@ -175,8 +175,59 @@ function setCaption(text) {
 }
 
 // ==========================================
-// 2D CANVAS ANIMATIONS (Heart -> Rose -> For you -> ANA)
+// 2D CANVAS ANIMATIONS (Heart -> Rose -> For you -> ANA) & METEOR SHOWER
 // ==========================================
+
+const meteors = [];
+
+function updateAndDrawMeteors(ctx, width, height) {
+    if (Math.random() < 0.35) {
+        meteors.push({
+            x: Math.random() * width * 1.3 - width * 0.15,
+            y: -30,
+            length: Math.random() * 90 + 60,
+            speed: Math.random() * 14 + 9,
+            size: Math.random() * 2.2 + 1.0,
+            angle: Math.PI / 4 + (Math.random() - 0.5) * 0.15,
+            alpha: 1.0,
+            color: Math.random() > 0.35 ? '255, 255, 255' : '255, 120, 200'
+        });
+    }
+
+    ctx.save();
+    for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        m.x += Math.cos(m.angle) * m.speed;
+        m.y += Math.sin(m.angle) * m.speed;
+        m.alpha -= 0.010;
+
+        if (m.alpha <= 0 || m.y > height + 100 || m.x > width + 100) {
+            meteors.splice(i, 1);
+            continue;
+        }
+
+        const tailX = m.x - Math.cos(m.angle) * m.length;
+        const tailY = m.y - Math.sin(m.angle) * m.length;
+
+        const grad = ctx.createLinearGradient(tailX, tailY, m.x, m.y);
+        grad.addColorStop(0, `rgba(${m.color}, 0)`);
+        grad.addColorStop(0.7, `rgba(${m.color}, ${m.alpha * 0.6})`);
+        grad.addColorStop(1, `rgba(255, 255, 255, ${m.alpha})`);
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = m.size;
+        ctx.beginPath();
+        ctx.moveTo(tailX, tailY);
+        ctx.lineTo(m.x, m.y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.size * 1.3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+}
 
 
 function getHeartPoint(t) {
@@ -241,7 +292,7 @@ function getRosePoints() {
     createLeaf(stemPt1.x, stemPt1.y, -Math.PI * 0.72, 1.0);
     createLeaf(stemPt2.x, stemPt2.y, -Math.PI * 0.22, 0.95);
 
-    // Sepal (green base under flower head)
+    // Sepal
     for (let a = -Math.PI * 0.85; a <= Math.PI * 0.85; a += 0.08) {
         for (let r = 5; r <= 28; r += 2.2) {
             const sx = roseCenterX + Math.sin(a) * r * 0.65;
@@ -739,8 +790,13 @@ let warpLinesGroup, warpLines = [];
 let galaxyParticles, galaxyGeometry, multiverseGroup = [];
 let particleTexture;
 
-// 3D Gift Box, Lid, Ribbon, Popping Hearts & Letter Paper
+// 3D Intro Heart & Flower Morph Meshes
+let intro3DGroup, heart3DMesh, flower3DGroup;
+
+// 3D Gift Box, Lid, Ribbon, Champagne, Bouquet, Envelope & Letter
 let giftBoxGroup, giftLidGroup, giftPaperMesh, poppingHearts = [];
+let champagneGroup, bouquetGroup, envelopeGroup, letter3DMesh;
+let cameraFlowerBouquet; // 3D Bouquet attached to camera during space travel
 
 // THREE Loading Manager for Preloader
 let isExperienceReady = false;
@@ -761,7 +817,7 @@ loadingManager.onLoad = () => {
     // Automatically start experience when loading completes
     setTimeout(() => {
         startExperience();
-    }, 400);
+    }, 100);
 };
 
 loadingManager.onError = (url) => {
@@ -792,6 +848,9 @@ function init3D() {
 
     camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 3000);
     camera.position.set(0, 40, 120);
+
+    // Add camera to scene so camera-attached children render in 1st-person view!
+    scene.add(camera);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -830,8 +889,124 @@ function init3D() {
     // Galaxy & Infinity
     createGalaxyAndInfinity();
 
+    // 3D Intro Heart and Flower Morph
+    create3DIntroHeartAndFlower();
+
     // 3D Gift Box & Popping Hearts
     create3DGiftBoxAndHearts();
+
+    // Camera-attached 3D Flower Bouquet (for 1st-person view during space travel)
+    createCameraFlowerBouquet();
+}
+
+function create3DIntroHeartAndFlower() {
+    intro3DGroup = new THREE.Group();
+    intro3DGroup.position.set(0, 0, 0);
+
+    // 3D Heart Mesh
+    const heartShape = new THREE.Shape();
+    heartShape.moveTo(0, 0);
+    heartShape.bezierCurveTo(0, 0, -1.5, 2.4, -3.6, 2.4);
+    heartShape.bezierCurveTo(-6.0, 2.4, -6.0, -1.2, -6.0, -1.2);
+    heartShape.bezierCurveTo(-6.0, -3.6, -3.6, -5.4, 0, -7.8);
+    heartShape.bezierCurveTo(3.6, -5.4, 6.0, -3.6, 6.0, -1.2);
+    heartShape.bezierCurveTo(6.0, -1.2, 6.0, 2.4, 3.6, 2.4);
+    heartShape.bezierCurveTo(1.5, 2.4, 0, 0, 0, 0);
+
+    const extrudeSettings = { depth: 2.0, bevelEnabled: true, bevelSegments: 4, steps: 2, bevelSize: 0.6, bevelThickness: 0.6 };
+    const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+    const heartMat = new THREE.MeshStandardMaterial({
+        color: 0xff0055,
+        metalness: 0.3,
+        roughness: 0.2,
+        emissive: 0x660022
+    });
+
+    heart3DMesh = new THREE.Mesh(heartGeo, heartMat);
+    heart3DMesh.scale.set(2.5, 2.5, 2.5);
+    heart3DMesh.position.set(0, 5, 0);
+    intro3DGroup.add(heart3DMesh);
+
+    // 3D Flower Group
+    flower3DGroup = new THREE.Group();
+    flower3DGroup.position.set(0, -5, 0);
+
+    // Stem
+    const stemGeo = new THREE.CylinderGeometry(0.5, 0.5, 18, 16);
+    const stemMat = new THREE.MeshStandardMaterial({ color: 0x00cc66, roughness: 0.4 });
+    const stemMesh = new THREE.Mesh(stemGeo, stemMat);
+    stemMesh.position.set(0, -9, 0);
+    flower3DGroup.add(stemMesh);
+
+    // Flower Petals
+    const petalGeo = new THREE.SphereGeometry(2.5, 16, 16);
+    petalGeo.scale(1, 0.3, 2);
+    const petalMat = new THREE.MeshStandardMaterial({ color: 0xff3388, roughness: 0.3, emissive: 0x440022 });
+
+    for (let i = 0; i < 12; i++) {
+        const pMesh = new THREE.Mesh(petalGeo, petalMat);
+        const angle = (i / 12) * Math.PI * 2;
+        pMesh.position.set(Math.cos(angle) * 3.5, 0, Math.sin(angle) * 3.5);
+        pMesh.rotation.y = angle;
+        pMesh.rotation.x = 0.3;
+        flower3DGroup.add(pMesh);
+    }
+
+    // Flower Center Core
+    const centerGeo = new THREE.SphereGeometry(2.2, 16, 16);
+    const centerMat = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.5, emissive: 0x554400 });
+    const centerMesh = new THREE.Mesh(centerGeo, centerMat);
+    flower3DGroup.add(centerMesh);
+
+    intro3DGroup.add(flower3DGroup);
+
+    intro3DGroup.visible = false;
+    scene.add(intro3DGroup);
+}
+
+function createCameraFlowerBouquet() {
+    cameraFlowerBouquet = new THREE.Group();
+
+    // Position at lower-left of 1st-person camera view
+    cameraFlowerBouquet.position.set(-8, -5, -12);
+    cameraFlowerBouquet.rotation.y = 0.3;
+    cameraFlowerBouquet.rotation.z = -0.15;
+    cameraFlowerBouquet.scale.set(0.45, 0.45, 0.45);
+
+    const wrapGeo = new THREE.ConeGeometry(7, 16, 32, 1, true);
+    const wrapMat = new THREE.MeshStandardMaterial({ color: 0xffe6ee, roughness: 0.6, side: THREE.DoubleSide });
+    const wrapMesh = new THREE.Mesh(wrapGeo, wrapMat);
+    wrapMesh.rotation.x = Math.PI;
+    wrapMesh.position.y = -2;
+    cameraFlowerBouquet.add(wrapMesh);
+
+    const rosePetalGeo = new THREE.SphereGeometry(1.5, 12, 12);
+    rosePetalGeo.scale(1, 0.4, 1.5);
+    const roseColors = [0xff0055, 0xff3388, 0xff66aa, 0xff0033];
+
+    for (let r = 0; r < 14; r++) {
+        const rose = new THREE.Group();
+        const rAngle = (r / 14) * Math.PI * 2;
+        const dist = (r % 3) * 1.8;
+        rose.position.set(Math.cos(rAngle) * dist, 6 + (r % 2) * 1.2, Math.sin(rAngle) * dist);
+
+        const rMat = new THREE.MeshStandardMaterial({
+            color: roseColors[r % roseColors.length],
+            roughness: 0.3,
+            metalness: 0.1
+        });
+
+        for (let p = 0; p < 8; p++) {
+            const pMesh = new THREE.Mesh(rosePetalGeo, rMat);
+            pMesh.rotation.y = (p / 8) * Math.PI * 2;
+            pMesh.rotation.x = 0.4;
+            rose.add(pMesh);
+        }
+        cameraFlowerBouquet.add(rose);
+    }
+
+    cameraFlowerBouquet.visible = false;
+    camera.add(cameraFlowerBouquet);
 }
 
 function createStarfield() {
@@ -1075,9 +1250,8 @@ function createCinematicBlackHole() {
         const angle = Math.random() * Math.PI * 2;
         const speed = (0.012 + Math.random() * 0.02) * (38 / radius);
 
-        // Tilt angle for 3D circulation (smooth continuous loop over top, behind, and under bottom)
+        // Tilt angle for 3D circulation
         const tiltFactor = Math.random();
-        // 40% horizontal disk, 60% dynamic vertical gravitational loop
         const loopType = tiltFactor < 0.4 ? 0 : (tiltFactor < 0.7 ? 1 : 2);
 
         bhParticleData.push({ radius, angle, speed, loopType });
@@ -1087,11 +1261,9 @@ function createCinematicBlackHole() {
         let z = Math.sin(angle) * radius;
 
         if (loopType === 1) {
-            // Loop bending over top & behind
             y = Math.sin(angle) * (radius * 0.75);
             z = Math.cos(angle) * (radius * 0.45);
         } else if (loopType === 2) {
-            // Loop bending under bottom
             y = -Math.sin(angle) * (radius * 0.75);
             z = Math.cos(angle) * (radius * 0.45);
         } else {
@@ -1117,18 +1289,20 @@ function createCinematicBlackHole() {
     blackHoleParticlesGroup = new THREE.Points(bhParticlesGeo, bhParticlesMat);
     blackHoleGroup.add(blackHoleParticlesGroup);
 
+    blackHoleGroup.visible = false;
     scene.add(blackHoleGroup);
 }
 
 
 function create3DGiftBoxAndHearts() {
+    // Isolated location far away from the Solar System (Z = -6000)
     giftBoxGroup = new THREE.Group();
-    giftBoxGroup.position.set(0, -10, 40); // Centered in screen space
+    giftBoxGroup.position.set(0, 0, -6000);
 
     // 1. Velvet Red Gift Box Base
-    const boxGeo = new THREE.BoxGeometry(18, 14, 18);
+    const boxGeo = new THREE.BoxGeometry(20, 15, 20);
     const velvetMat = new THREE.MeshStandardMaterial({
-        color: 0x800020, // Burgundy velvet
+        color: 0x800020,
         roughness: 0.3,
         metalness: 0.5,
         emissive: 0x2b000b
@@ -1143,54 +1317,161 @@ function create3DGiftBoxAndHearts() {
         roughness: 0.15,
         emissive: 0x664400
     });
-    const ribbonV = new THREE.Mesh(new THREE.BoxGeometry(18.3, 14.1, 3.2), goldMat);
-    const ribbonH = new THREE.Mesh(new THREE.BoxGeometry(3.2, 14.1, 18.3), goldMat);
+    const ribbonV = new THREE.Mesh(new THREE.BoxGeometry(20.3, 15.1, 3.5), goldMat);
+    const ribbonH = new THREE.Mesh(new THREE.BoxGeometry(3.5, 15.1, 20.3), goldMat);
     giftBoxGroup.add(ribbonV);
     giftBoxGroup.add(ribbonH);
 
     // 2. Gift Box Lid (Removable / Rotates open)
     giftLidGroup = new THREE.Group();
-    giftLidGroup.position.set(0, 7, 0); // At top edge of box
+    giftLidGroup.position.set(0, 7.5, 0);
 
-    const lidGeo = new THREE.BoxGeometry(19, 3.2, 19);
+    const lidGeo = new THREE.BoxGeometry(21, 3.5, 21);
     const lidMesh = new THREE.Mesh(lidGeo, velvetMat);
-    lidMesh.position.set(0, 1.6, 0);
+    lidMesh.position.set(0, 1.75, 0);
     giftLidGroup.add(lidMesh);
 
     // Ribbon cross on lid
-    const lidRibV = new THREE.Mesh(new THREE.BoxGeometry(19.3, 3.3, 3.4), goldMat);
-    lidRibV.position.set(0, 1.6, 0);
-    const lidRibH = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.3, 19.3), goldMat);
-    lidRibH.position.set(0, 1.6, 0);
+    const lidRibV = new THREE.Mesh(new THREE.BoxGeometry(21.3, 3.6, 3.7), goldMat);
+    lidRibV.position.set(0, 1.75, 0);
+    const lidRibH = new THREE.Mesh(new THREE.BoxGeometry(3.7, 3.6, 21.3), goldMat);
+    lidRibH.position.set(0, 1.75, 0);
     giftLidGroup.add(lidRibV);
     giftLidGroup.add(lidRibH);
 
     // Ribbon Bow on top
-    const bowGeo = new THREE.TorusGeometry(2.5, 0.6, 16, 32);
+    const bowGeo = new THREE.TorusGeometry(3.0, 0.7, 16, 32);
     const bowLeft = new THREE.Mesh(bowGeo, goldMat);
     bowLeft.rotation.y = Math.PI / 4;
-    bowLeft.position.set(-1.8, 4.2, 0);
+    bowLeft.position.set(-2.0, 4.5, 0);
     const bowRight = new THREE.Mesh(bowGeo, goldMat);
     bowRight.rotation.y = -Math.PI / 4;
-    bowRight.position.set(1.8, 4.2, 0);
+    bowRight.position.set(2.0, 4.5, 0);
     giftLidGroup.add(bowLeft);
     giftLidGroup.add(bowRight);
 
     giftBoxGroup.add(giftLidGroup);
 
-    // 3. 3D Unfolding Letter Paper (slides upwards out of the interior of the box)
-    const paperGeo = new THREE.PlaneGeometry(15, 20);
-    const paperMat = new THREE.MeshStandardMaterial({
+    // 3. Champagne Bottles ("Botellas de Champaña")
+    champagneGroup = new THREE.Group();
+    champagneGroup.position.set(-6, 2, 0);
+
+    const bottleMat = new THREE.MeshStandardMaterial({
+        color: 0x0f3811,
+        roughness: 0.1,
+        metalness: 0.8
+    });
+    const foilMat = new THREE.MeshStandardMaterial({
+        color: 0xffd700,
+        metalness: 0.9,
+        roughness: 0.2
+    });
+
+    for (let b = 0; b < 2; b++) {
+        const bottle = new THREE.Group();
+        bottle.position.set(b * 12, 0, (b % 2) * 2 - 1);
+
+        const bodyGeo = new THREE.CylinderGeometry(2.2, 2.2, 10, 32);
+        const bodyMesh = new THREE.Mesh(bodyGeo, bottleMat);
+        bodyMesh.position.y = 5;
+        bottle.add(bodyMesh);
+
+        const neckGeo = new THREE.CylinderGeometry(0.8, 2.2, 6, 32);
+        const neckMesh = new THREE.Mesh(neckGeo, bottleMat);
+        neckMesh.position.y = 13;
+        bottle.add(neckMesh);
+
+        const foilGeo = new THREE.CylinderGeometry(0.85, 1.1, 3.5, 32);
+        const foilMesh = new THREE.Mesh(foilGeo, foilMat);
+        foilMesh.position.y = 15.5;
+        bottle.add(foilMesh);
+
+        champagneGroup.add(bottle);
+    }
+    champagneGroup.visible = false;
+    giftBoxGroup.add(champagneGroup);
+
+    // 4. Detailed Flower Bouquet
+    bouquetGroup = new THREE.Group();
+    bouquetGroup.position.set(6, 2, 0);
+
+    const wrapGeo = new THREE.ConeGeometry(7, 16, 32, 1, true);
+    const wrapMat = new THREE.MeshStandardMaterial({
+        color: 0xffe6ee,
+        roughness: 0.6,
+        side: THREE.DoubleSide
+    });
+    const wrapMesh = new THREE.Mesh(wrapGeo, wrapMat);
+    wrapMesh.rotation.x = Math.PI;
+    wrapMesh.position.y = -2;
+    bouquetGroup.add(wrapMesh);
+
+    const rosePetalGeo = new THREE.SphereGeometry(1.5, 12, 12);
+    rosePetalGeo.scale(1, 0.4, 1.5);
+    const roseColors = [0xff0055, 0xff3388, 0xff66aa, 0xff0033];
+
+    for (let r = 0; r < 14; r++) {
+        const rose = new THREE.Group();
+        const rAngle = (r / 14) * Math.PI * 2;
+        const dist = (r % 3) * 1.8;
+        rose.position.set(Math.cos(rAngle) * dist, 6 + (r % 2) * 1.2, Math.sin(rAngle) * dist);
+
+        const rMat = new THREE.MeshStandardMaterial({
+            color: roseColors[r % roseColors.length],
+            roughness: 0.3,
+            metalness: 0.1
+        });
+
+        for (let p = 0; p < 8; p++) {
+            const pMesh = new THREE.Mesh(rosePetalGeo, rMat);
+            pMesh.rotation.y = (p / 8) * Math.PI * 2;
+            pMesh.rotation.x = 0.4;
+            rose.add(pMesh);
+        }
+        bouquetGroup.add(rose);
+    }
+    bouquetGroup.visible = false;
+    giftBoxGroup.add(bouquetGroup);
+
+    // 5. 3D Envelope ("Sobre de Carta")
+    envelopeGroup = new THREE.Group();
+    envelopeGroup.position.set(12, 4, 0);
+
+    const envGeo = new THREE.BoxGeometry(10, 7, 0.6);
+    const envMat = new THREE.MeshStandardMaterial({
+        color: 0xfff0db,
+        roughness: 0.5
+    });
+    const envBody = new THREE.Mesh(envGeo, envMat);
+    envelopeGroup.add(envBody);
+
+    const sealGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.4, 24);
+    const sealMat = new THREE.MeshStandardMaterial({
+        color: 0xb30000,
+        roughness: 0.3,
+        metalness: 0.3
+    });
+    const sealMesh = new THREE.Mesh(sealGeo, sealMat);
+    sealMesh.rotation.x = Math.PI / 2;
+    sealMesh.position.set(0, 0, 0.4);
+    envelopeGroup.add(sealMesh);
+
+    envelopeGroup.visible = false;
+    giftBoxGroup.add(envelopeGroup);
+
+    // 6. 3D Paper Letter Sheet ("Carta 3D Plegada/Desplegada")
+    const letterGeo = new THREE.PlaneGeometry(12, 16);
+    const letterMat = new THREE.MeshStandardMaterial({
         color: 0xfffcf0,
         roughness: 0.8,
         side: THREE.DoubleSide
     });
-    giftPaperMesh = new THREE.Mesh(paperGeo, paperMat);
-    giftPaperMesh.position.set(0, 0, 0);
-    giftPaperMesh.visible = false;
-    giftBoxGroup.add(giftPaperMesh);
+    letter3DMesh = new THREE.Mesh(letterGeo, letterMat);
+    letter3DMesh.position.set(-12, 4, 0);
+    letter3DMesh.visible = false;
+    giftBoxGroup.add(letter3DMesh);
 
-    // 4. Popping 3D Hearts (Burst out of the box when opened)
+    // 7. Popping 3D Hearts
     const heartShape = new THREE.Shape();
     heartShape.moveTo(0, 0);
     heartShape.bezierCurveTo(0, 0, -0.5, 0.8, -1.2, 0.8);
@@ -1239,13 +1520,12 @@ function create3DGiftBoxAndHearts() {
 }
 
 function createGalaxyAndInfinity() {
-    const count = 35000; // Ultra dense, realistic galaxy with 35,000 stars!
+    const count = 35000;
     galaxyGeometry = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
-        // 4 spiral arms + central galactic bulge + outer halo stars
         const arm = i % 4;
         const distRatio = Math.pow(Math.random(), 1.5);
         const radius = distRatio * 320;
@@ -1264,10 +1544,8 @@ function createGalaxyAndInfinity() {
 
         const c = new THREE.Color();
         if (radius < 40) {
-            // Bright white-gold core
             c.setHSL(0.12, 0.9, 0.85);
         } else {
-            // Vivid pink/magenta/purple arms
             const hue = 0.82 + (radius / 320) * 0.18 + Math.random() * 0.05;
             c.setHSL(hue, 0.95, 0.65);
         }
@@ -1291,10 +1569,10 @@ function createGalaxyAndInfinity() {
     });
 
     galaxyParticles = new THREE.Points(galaxyGeometry, mat);
-    galaxyParticles.position.set(0, 0, -3500); // Separate cosmic location in deep space!
+    galaxyParticles.position.set(0, 0, -3500);
     scene.add(galaxyParticles);
 
-    // Multiverse Galaxies Cluster (5 swirling mini galaxies)
+    // Multiverse Galaxies Cluster
     multiverseGroup = new THREE.Group();
     multiverseGroup.position.set(0, 0, -3500);
     multiverseGroup.visible = false;
@@ -1376,6 +1654,8 @@ function animate(timestamp) {
     } else {
         ctx2d.fillStyle = 'rgba(0, 0, 0, 0.18)';
         ctx2d.fillRect(0, 0, width, height);
+        // Draw meteor shower in background during initial sequence
+        updateAndDrawMeteors(ctx2d, width, height);
     }
 
     // 1. Glowing Neon Heart Drawing (0.5s - 4.0s)
@@ -1430,19 +1710,19 @@ function animate(timestamp) {
         let progress = 0;
 
         if (elapsed <= 9.5) {
-            stage = 0; // Orbiting light particles coming in from right
+            stage = 0;
             progress = Math.min(1, (elapsed - 7.5) / 2.0);
         } else if (elapsed <= 11.5) {
-            stage = 1; // Forming "For you"
+            stage = 1;
             progress = 1.0;
         } else if (elapsed <= 13.8) {
-            stage = 2; // Morphing into "ANA"
+            stage = 2;
             progress = Math.min(1, (elapsed - 11.5) / 2.3);
         } else if (elapsed <= 15.2) {
-            stage = 3; // Holding "ANA"
+            stage = 3;
             progress = 1.0;
         } else {
-            stage = 4; // Dispersing into space
+            stage = 4;
             progress = Math.min(1, (elapsed - 15.2) / 0.8);
         }
 
@@ -1451,7 +1731,6 @@ function animate(timestamp) {
         ctx2d.save();
         ctx2d.globalAlpha = overallFade;
 
-        // Draw glowing light particles forming text
         for (let i = 0; i < morphParticles.length; i++) {
             const t1 = forYouTargets[i % forYouTargets.length];
             const t2 = anaTargets[i % anaTargets.length];
@@ -1473,6 +1752,15 @@ function animate(timestamp) {
     if (elapsed > 16.0) {
         if (!scene) init3D();
 
+        // Reveal 3D Intro Heart & Flower Morph transitioning into 3D space (16s - 20s)
+        if (intro3DGroup) {
+            intro3DGroup.visible = elapsed >= 16.0 && elapsed <= 21.0;
+            if (intro3DGroup.visible) {
+                intro3DGroup.rotation.y += 0.02;
+                if (heart3DMesh) heart3DMesh.rotation.z = Math.sin(elapsed * 2) * 0.15;
+            }
+        }
+
         // ALWAYS update planet orbits around the Sun from the very start
         planetsList.forEach(p => {
             p.angle += p.speed;
@@ -1487,40 +1775,50 @@ function animate(timestamp) {
         const time3D = elapsed - 16.0;
         setLetterVisible(time3D > 1.5);
 
+        // Keep 3D Flower bouquet visible attached to camera (1st person view) during cosmic tour!
+        if (cameraFlowerBouquet) {
+            cameraFlowerBouquet.visible = time3D > 5.0; // Appears right after gift box opening!
+            if (cameraFlowerBouquet.visible) {
+                cameraFlowerBouquet.rotation.y = 0.3 + Math.sin(time3D * 1.2) * 0.05;
+            }
+        }
+
         if (creditsContent && time3D > 2.0) {
-            const scrollOffset = (time3D - 2.0) * 18; // 18px per second smooth upward crawl
+            const scrollOffset = (time3D - 2.0) * 18;
             creditsContent.style.transform = `translateY(-${scrollOffset}px)`;
         }
 
-        // Determine current active scene based on time sequence
-        if (time3D <= 6.0) currentActiveScene = 0;       // Gift box & intro
-        else if (time3D <= 12.0) currentActiveScene = 1;  // Moon
-        else if (time3D <= 18.0) currentActiveScene = 2;  // Earth
-        else if (time3D <= 24.0) currentActiveScene = 3;  // Sun
-        else if (time3D <= 30.0) currentActiveScene = 4;  // Solar System
-        else if (time3D <= 37.0) currentActiveScene = 5;  // Future wife Ana / Deep Space
-        else if (time3D <= 45.0) currentActiveScene = 6;  // Black Hole
-        else if (time3D <= 52.0) currentActiveScene = 7;  // Universe / Galaxy
-        else if (time3D <= 58.0) currentActiveScene = 8;  // Multiverse
-        else currentActiveScene = 9;                      // Grand Finale
+        // Determine current active scene based on time sequence synchronized with text
+        if (time3D <= 6.0) currentActiveScene = 0;        // Gift box, Champagne, Bouquet, Envelope & Unfolding Letter
+        else if (time3D <= 14.0) currentActiveScene = 1;  // Earth (Earth first - birthday & stats)
+        else if (time3D <= 20.0) currentActiveScene = 2;  // Moon ("su hermosa sonrisa brilla más que la luna")
+        else if (time3D <= 26.0) currentActiveScene = 3;  // Sun ("su mirada atractiva alimenta de energía nuestra estrella")
+        else if (time3D <= 32.0) currentActiveScene = 4;  // Solar System ("y si comparamos nuestro sistema solar")
+        else if (time3D <= 42.0) currentActiveScene = 5;  // Universe & Multiverses ("o si pongamos el universo entero... Dios...")
+        else if (time3D <= 50.0) currentActiveScene = 6;  // Black Hole ("el loco que entraría y saldría de un agujero negro")
+        else if (time3D <= 58.0) currentActiveScene = 7;  // Infinity ("porque mi amor para ella es infinito")
+        else currentActiveScene = 8;                      // Grand Finale
 
-        // --- Stage 0: 3D Gift Box Opening & Popping Hearts (16.0s - 22.0s) ---
+        // --- Stage 0: 3D Gift Box Opening, Champagne, Bouquet, Envelope & Unfolding Letter (16.0s - 22.0s) ---
         if (currentActiveScene === 0) {
             if (giftBoxGroup) giftBoxGroup.visible = true;
             if (solarSystemGroup) solarSystemGroup.visible = false;
 
-            const openProg = Math.min(1, Math.max(0, (time3D - 1.0) / 2.5));
+            const openProg = Math.min(1, Math.max(0, (time3D - 0.8) / 2.0));
             if (giftLidGroup) {
                 giftLidGroup.rotation.x = -Math.PI * 0.75 * openProg;
-                giftLidGroup.position.z = -openProg * 10;
+                giftLidGroup.position.z = -openProg * 12;
             }
 
-            if (giftPaperMesh) {
-                giftPaperMesh.visible = openProg > 0.1;
-                giftPaperMesh.position.y = openProg * 12;
+            if (champagneGroup) champagneGroup.visible = openProg > 0.2;
+            if (bouquetGroup) bouquetGroup.visible = openProg > 0.3;
+            if (envelopeGroup) envelopeGroup.visible = openProg > 0.5;
+
+            if (letter3DMesh) {
+                letter3DMesh.visible = openProg > 0.7;
+                letter3DMesh.scale.set(1.0, openProg, 1.0);
             }
 
-            // Animate popping 3D hearts bursting out
             poppingHearts.forEach(h => {
                 h.mesh.visible = openProg > 0.2;
                 if (h.mesh.visible) {
@@ -1532,28 +1830,16 @@ function animate(timestamp) {
                 }
             });
 
-            const targetCamPos = new THREE.Vector3(0, 0, 85);
+            const targetCamPos = new THREE.Vector3(0, 5, -5920);
             camera.position.lerp(targetCamPos, 0.05);
-            camera.lookAt(0, -5, 40);
+            camera.lookAt(0, 0, -6000);
         }
 
-        // --- Stage 1: The Moon (22.0s - 28.0s) ---
+        // --- Stage 1: Earth (Earth First - Birth Stats & Ana Clara) ---
         else if (currentActiveScene === 1) {
-            if (giftBoxGroup) {
-                giftBoxGroup.position.lerp(new THREE.Vector3(30, -25, 20), 0.05);
-                giftBoxGroup.scale.lerp(new THREE.Vector3(0.4, 0.4, 0.4), 0.05);
-            }
             if (solarSystemGroup) solarSystemGroup.visible = true;
+            if (giftBoxGroup) giftBoxGroup.visible = false;
 
-            if (moonOnlyMesh) {
-                const targetCamPos = new THREE.Vector3(-95, 10, 480);
-                camera.position.lerp(targetCamPos, 0.06);
-                camera.lookAt(-80, 10, 450);
-            }
-        }
-
-        // --- Stage 2: Earth (28.0s - 34.0s) ---
-        else if (currentActiveScene === 2) {
             if (earthMesh) {
                 const earthWorldPos = new THREE.Vector3();
                 earthMesh.getWorldPosition(earthWorldPos);
@@ -1568,21 +1854,32 @@ function animate(timestamp) {
             }
         }
 
-        // --- Stage 3: The Sun (34.0s - 40.0s) ---
+        // --- Stage 2: The Moon ("su hermosa sonrisa brilla mas que la luna") ---
+        else if (currentActiveScene === 2) {
+            if (solarSystemGroup) solarSystemGroup.visible = true;
+
+            if (moonOnlyMesh) {
+                const targetCamPos = new THREE.Vector3(-95, 10, 480);
+                camera.position.lerp(targetCamPos, 0.06);
+                camera.lookAt(-80, 10, 450);
+            }
+        }
+
+        // --- Stage 3: The Sun ---
         else if (currentActiveScene === 3) {
             const targetCamPos = new THREE.Vector3(-25, 15, 65);
             camera.position.lerp(targetCamPos, 0.05);
             camera.lookAt(0, 0, 0);
         }
 
-        // --- Stage 4: Full Solar System (40.0s - 47.0s) ---
+        // --- Stage 4: Full Solar System ---
         else if (currentActiveScene === 4) {
             const targetCamPos = new THREE.Vector3(-60, 160, 310);
             camera.position.lerp(targetCamPos, 0.04);
             camera.lookAt(0, 0, 0);
         }
 
-        // --- Stage 5: Deep Space Warp Travel (47.0s - 54.0s) ---
+        // --- Stage 5: Deep Space Warp Travel ---
         else if (currentActiveScene === 5) {
             warpLinesGroup.visible = true;
 
@@ -1602,8 +1899,60 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -1800);
         }
 
-        // Update Black Hole particles
-        if (bhParticleData.length > 0 && bhParticlesPositions) {
+        // --- Stage 6: Gargantua Black Hole ---
+        else if (currentActiveScene === 6) {
+            warpLinesGroup.visible = false;
+            blackHoleGroup.visible = true;
+
+            if (accretionDiskMesh) accretionDiskMesh.rotation.z += 0.012;
+            if (lensingTopMesh) lensingTopMesh.rotation.z -= 0.008;
+
+            const targetCamPos = new THREE.Vector3(-30, 10, -1725);
+            camera.position.lerp(targetCamPos, 0.05);
+            camera.lookAt(0, 0, -1800);
+        }
+
+        // --- Stage 7: Universe / Galaxy ---
+        else if (currentActiveScene === 7) {
+            blackHoleGroup.visible = false;
+            galaxyParticles.material.opacity = Math.min(1, (time3D - 45.0) / 2.5);
+            galaxyParticles.rotation.y += 0.004;
+
+            const targetCamPos = new THREE.Vector3(-80, 350, -2880);
+            camera.position.lerp(targetCamPos, 0.035);
+            camera.lookAt(0, 0, -3500);
+        }
+
+        // --- Stage 8: Multiverse ---
+        else if (currentActiveScene === 8) {
+            if (multiverseGroup) {
+                multiverseGroup.visible = true;
+                multiverseGroup.rotation.y += 0.003;
+            }
+
+            const targetCamPos = new THREE.Vector3(-100, 450, -2600);
+            camera.position.lerp(targetCamPos, 0.035);
+            camera.lookAt(0, 0, -3500);
+        }
+
+        // --- Stage 9: Grand Finale / Universe Fade-out ---
+        else if (currentActiveScene === 9) {
+            if (multiverseGroup) multiverseGroup.visible = false;
+            if (galaxyParticles) {
+                galaxyParticles.material.opacity = Math.max(0, galaxyParticles.material.opacity - 0.015);
+            }
+
+            if (letterSheetContainer) {
+                letterSheetContainer.style.opacity = Math.max(0, parseFloat(letterSheetContainer.style.opacity || 1) - 0.02);
+            }
+
+            const targetCamPos = new THREE.Vector3(0, 0, -3350);
+            camera.position.lerp(targetCamPos, 0.04);
+            camera.lookAt(0, 0, -3500);
+        }
+
+        // Always update Black Hole particles if active
+        if (blackHoleGroup && blackHoleGroup.visible && bhParticleData.length > 0 && bhParticlesPositions) {
             for (let i = 0; i < bhParticleData.length; i++) {
                 const data = bhParticleData[i];
                 data.angle += data.speed;
@@ -1627,60 +1976,6 @@ function animate(timestamp) {
                 bhParticlesPositions[i * 3 + 2] = z;
             }
             bhParticlesGeo.attributes.position.needsUpdate = true;
-        }
-
-        // --- Stage 6: Gargantua Black Hole (54.0s - 62.0s) ---
-        else if (currentActiveScene === 6) {
-            warpLinesGroup.visible = false;
-            blackHoleGroup.visible = true;
-
-            if (accretionDiskMesh) accretionDiskMesh.rotation.z += 0.012;
-            if (lensingTopMesh) lensingTopMesh.rotation.z -= 0.008;
-
-            const targetCamPos = new THREE.Vector3(-30, 10, -1725);
-            camera.position.lerp(targetCamPos, 0.05);
-            camera.lookAt(0, 0, -1800);
-        }
-
-        // --- Stage 7: Universe / Galaxy (62.0s - 69.0s) ---
-        else if (currentActiveScene === 7) {
-            blackHoleGroup.visible = false;
-            galaxyParticles.material.opacity = Math.min(1, (time3D - 45.0) / 2.5);
-            galaxyParticles.rotation.y += 0.004;
-
-            const targetCamPos = new THREE.Vector3(-80, 350, -2880);
-            camera.position.lerp(targetCamPos, 0.035);
-            camera.lookAt(0, 0, -3500);
-        }
-
-        // --- Stage 8: Multiverse (69.0s - 76.0s) ---
-        else if (currentActiveScene === 8) {
-            if (multiverseGroup) {
-                multiverseGroup.visible = true;
-                multiverseGroup.rotation.y += 0.003;
-            }
-
-            const targetCamPos = new THREE.Vector3(-100, 450, -2600);
-            camera.position.lerp(targetCamPos, 0.035);
-            camera.lookAt(0, 0, -3500);
-        }
-
-        // --- Stage 9: Grand Finale / Universe Fade-out & Letter Paper Dissolve into Light ---
-        else if (currentActiveScene === 9) {
-            if (multiverseGroup) multiverseGroup.visible = false;
-            if (galaxyParticles) {
-                // Smoothly fade galaxy particles out to transition into pure light
-                galaxyParticles.material.opacity = Math.max(0, galaxyParticles.material.opacity - 0.015);
-            }
-
-            // Hide letter sheet paper container as it dissolves into particles
-            if (letterSheetContainer) {
-                letterSheetContainer.style.opacity = Math.max(0, parseFloat(letterSheetContainer.style.opacity || 1) - 0.02);
-            }
-
-            const targetCamPos = new THREE.Vector3(0, 0, -3350);
-            camera.position.lerp(targetCamPos, 0.04);
-            camera.lookAt(0, 0, -3500);
         }
 
         renderer.render(scene, camera);
