@@ -118,6 +118,47 @@ html, body {
     background-color: #000000;
 }
 
+/* Birthday 3D Letter Overlay Styling */
+#letter-overlay {
+    position: absolute;
+    bottom: 5%;
+    right: 4%;
+    z-index: 15;
+    width: 380px;
+    max-width: 90vw;
+    background: linear-gradient(145deg, rgba(28, 12, 35, 0.88), rgba(10, 4, 18, 0.92));
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    border-radius: 16px;
+    padding: 22px 25px;
+    box-shadow: 0 0 30px rgba(255, 0, 127, 0.35), inset 0 0 15px rgba(255, 215, 0, 0.15);
+    backdrop-filter: blur(10px);
+    transition: opacity 1.2s ease, transform 1.2s ease;
+}
+
+#letter-overlay.hidden {
+    opacity: 0;
+    transform: translateY(30px);
+    pointer-events: none;
+}
+
+.letter-header {
+    font-family: 'Great Vibes', cursive;
+    font-size: 1.9rem;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+#letter-text {
+    font-family: 'Cinzel', serif;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: #fff8e7;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    min-height: 110px;
+}
+
 #caption-container {
     position: absolute;
     bottom: 8%;

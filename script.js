@@ -5,6 +5,22 @@ const ctx2d = canvas2d.getContext('2d');
 const captionContainer = document.getElementById('caption-container');
 const captionText = document.getElementById('caption-text');
 
+const letterOverlay = document.getElementById('letter-overlay');
+const letterText = document.getElementById('letter-text');
+let currentLetterText = '';
+
+function setLetter(text) {
+    if (!text) {
+        if (letterOverlay) letterOverlay.classList.add('hidden');
+    } else {
+        if (letterOverlay) letterOverlay.classList.remove('hidden');
+        if (currentLetterText !== text) {
+            currentLetterText = text;
+            if (letterText) letterText.textContent = text;
+        }
+    }
+}
+
 const loaderOverlay = document.getElementById('loader-overlay');
 const loaderBar = document.getElementById('loader-bar');
 const loaderStatus = document.getElementById('loader-status');
@@ -729,12 +745,16 @@ let scene, camera, renderer;
 let sunMesh, earthMesh, moonMesh;
 let solarSystemGroup;
 let planetsList = [];
+let moonOnlyMesh;
 
 let blackHoleGroup, accretionDiskMesh, gravitationalLensingMesh, lensingTopMesh, lensingBottomMesh;
 let blackHoleParticlesGroup, bhParticlesGeo, bhParticlesPositions, bhParticleData = [];
 let warpLinesGroup, warpLines = [];
-let galaxyParticles, galaxyGeometry;
+let galaxyParticles, galaxyGeometry, multiverseGroup = [];
 let particleTexture;
+
+// 3D Envelope, Seal, Letter Paper & First-Person Hand
+let envelopeGroup, envelopeFlap, waxSealMesh, letterPaperMesh, handGroup;
 
 // THREE Loading Manager for Preloader
 let isExperienceReady = false;
@@ -823,6 +843,9 @@ function init3D() {
 
     // Galaxy & Infinity
     createGalaxyAndInfinity();
+
+    // 3D Envelope & First-Person Hands
+    create3DEnvelopeAndHands();
 }
 
 function createStarfield() {
@@ -858,6 +881,13 @@ function createSolarSystem() {
     const saturnRingTex = createProceduralTexture('saturn_ring');
     const uranusTex = loadTextureSafe('textures/uranus.jpg', 'uranus');
     const neptuneTex = loadTextureSafe('textures/neptune.jpg', 'neptune');
+
+    // Independent Moon Mesh for Moon Stage
+    const moonOnlyGeo = new THREE.SphereGeometry(6, 32, 32);
+    const moonOnlyMat = new THREE.MeshStandardMaterial({ map: moonTex, roughness: 0.8 });
+    moonOnlyMesh = new THREE.Mesh(moonOnlyGeo, moonOnlyMat);
+    moonOnlyMesh.position.set(-80, 10, 450); // Positioned for initial Moon scene
+    solarSystemGroup.add(moonOnlyMesh);
 
     // Sun
     const sunGeo = new THREE.SphereGeometry(18, 48, 48);
@@ -1105,6 +1135,99 @@ function createCinematicBlackHole() {
 }
 
 
+function create3DEnvelopeAndHands() {
+    envelopeGroup = new THREE.Group();
+    envelopeGroup.position.set(0, 0, 40); // Close to camera initial position
+
+    // 1. Envelope Body (Royal Gold & Deep Burgundy Velvet Box/Envelope)
+    const envBodyGeo = new THREE.BoxGeometry(22, 14, 1.2);
+    const envMat = new THREE.MeshStandardMaterial({
+        color: 0x3d001a,
+        roughness: 0.35,
+        metalness: 0.65,
+        emissive: 0x1a000a
+    });
+    const envBody = new THREE.Mesh(envBodyGeo, envMat);
+    envelopeGroup.add(envBody);
+
+    // Gold Trim Borders around Envelope
+    const trimGeo = new THREE.BoxGeometry(22.4, 14.4, 0.2);
+    const goldMat = new THREE.MeshStandardMaterial({
+        color: 0xffd700,
+        metalness: 0.9,
+        roughness: 0.15,
+        emissive: 0x886600
+    });
+    const trim = new THREE.Mesh(trimGeo, goldMat);
+    trim.position.z = -0.6;
+    envelopeGroup.add(trim);
+
+    // 2. Envelope Top Triangular Flap (Rotates open)
+    envelopeFlap = new THREE.Group();
+    envelopeFlap.position.set(0, 7, 0.6); // Pivot at top edge of envelope
+
+    const flapShape = new THREE.Shape();
+    flapShape.moveTo(-11, 0);
+    flapShape.lineTo(11, 0);
+    flapShape.lineTo(0, -6.8);
+    flapShape.closePath();
+
+    const flapExtrudeGeo = new THREE.ExtrudeGeometry(flapShape, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1 });
+    const flapMesh = new THREE.Mesh(flapExtrudeGeo, envMat);
+    flapMesh.position.set(0, 0, -0.15);
+    envelopeFlap.add(flapMesh);
+
+    // 3. Wax Seal (Heart + Rose Emblem)
+    const sealGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.6, 32);
+    const sealMat = new THREE.MeshStandardMaterial({
+        color: 0xcc0033,
+        roughness: 0.2,
+        metalness: 0.7,
+        emissive: 0x440011
+    });
+    waxSealMesh = new THREE.Mesh(sealGeo, sealMat);
+    waxSealMesh.rotation.x = Math.PI / 2;
+    waxSealMesh.position.set(0, -3.5, 0.4);
+    envelopeFlap.add(waxSealMesh);
+
+    envelopeGroup.add(envelopeFlap);
+
+    // 4. Letter Paper Inside Envelope (Slides out & Unfolds)
+    const paperGeo = new THREE.PlaneGeometry(18, 12);
+    const paperMat = new THREE.MeshStandardMaterial({
+        color: 0xfffdf5,
+        roughness: 0.8,
+        side: THREE.DoubleSide
+    });
+    letterPaperMesh = new THREE.Mesh(paperGeo, paperMat);
+    letterPaperMesh.position.set(0, 0, 0.1);
+    letterPaperMesh.visible = false;
+    envelopeGroup.add(letterPaperMesh);
+
+    // 5. Stylized First-Person Hands (Holding and opening envelope)
+    handGroup = new THREE.Group();
+
+    // Left Hand Grip
+    const handMat = new THREE.MeshStandardMaterial({ color: 0xffdfd3, roughness: 0.6 });
+    const leftPalmGeo = new THREE.BoxGeometry(4, 5, 2);
+    const leftPalm = new THREE.Mesh(leftPalmGeo, handMat);
+    leftPalm.position.set(-13, -3, 2);
+    leftPalm.rotation.z = -0.2;
+    handGroup.add(leftPalm);
+
+    // Right Hand (Fingers lifting the seal)
+    const rightPalmGeo = new THREE.BoxGeometry(3.5, 4.5, 1.8);
+    const rightPalm = new THREE.Mesh(rightPalmGeo, handMat);
+    rightPalm.position.set(12, 1, 3);
+    rightPalm.rotation.z = 0.2;
+    handGroup.add(rightPalm);
+
+    envelopeGroup.add(handGroup);
+
+    envelopeGroup.visible = false;
+    scene.add(envelopeGroup);
+}
+
 function createGalaxyAndInfinity() {
     const count = 35000; // Ultra dense, realistic galaxy with 35,000 stars!
     galaxyGeometry = new THREE.BufferGeometry();
@@ -1160,6 +1283,51 @@ function createGalaxyAndInfinity() {
     galaxyParticles = new THREE.Points(galaxyGeometry, mat);
     galaxyParticles.position.set(0, 0, -3500); // Separate cosmic location in deep space!
     scene.add(galaxyParticles);
+
+    // Multiverse Galaxies Cluster (5 swirling mini galaxies)
+    multiverseGroup = new THREE.Group();
+    multiverseGroup.position.set(0, 0, -3500);
+    multiverseGroup.visible = false;
+
+    const multiPositions = [-300, 200, -200, 300, -150, 100, -250, -200, 300, 250, 180, -300, 0, -300, 0];
+    for (let g = 0; g < 5; g++) {
+        const miniGeo = new THREE.BufferGeometry();
+        const miniCount = 4000;
+        const miniPos = new Float32Array(miniCount * 3);
+        const miniColors = new Float32Array(miniCount * 3);
+
+        for (let i = 0; i < miniCount; i++) {
+            const rad = Math.random() * 90;
+            const ang = Math.random() * Math.PI * 2 + rad * 0.05;
+            miniPos[i * 3] = Math.cos(ang) * rad + (Math.random() - 0.5) * 10;
+            miniPos[i * 3 + 1] = (Math.random() - 0.5) * 15;
+            miniPos[i * 3 + 2] = Math.sin(ang) * rad + (Math.random() - 0.5) * 10;
+
+            const col = new THREE.Color();
+            col.setHSL(0.5 + (g * 0.12) + Math.random() * 0.1, 0.9, 0.65);
+            miniColors[i * 3] = col.r;
+            miniColors[i * 3 + 1] = col.g;
+            miniColors[i * 3 + 2] = col.b;
+        }
+
+        miniGeo.setAttribute('position', new THREE.BufferAttribute(miniPos, 3));
+        miniGeo.setAttribute('color', new THREE.BufferAttribute(miniColors, 3));
+
+        const miniMat = new THREE.PointsMaterial({
+            size: 2.0,
+            map: particleTexture,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.85,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+
+        const miniGal = new THREE.Points(miniGeo, miniMat);
+        miniGal.position.set(multiPositions[g * 3], multiPositions[g * 3 + 1], multiPositions[g * 3 + 2]);
+        multiverseGroup.add(miniGal);
+    }
+    scene.add(multiverseGroup);
 
     const infinityPos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -1314,12 +1482,49 @@ function animate(timestamp) {
 
         if (sunMesh) sunMesh.rotation.y += 0.005;
 
-        // Stage 1: Zoom in on Earth (16.0s - 23.0s)
-        if (elapsed > 16.0 && elapsed <= 23.0) {
-            setCaption("Mi amor por ti es más grande que esto");
+        // --- Stage 0: 3D Envelope & First-Person Hand Opening (16.0s - 22.0s) ---
+        if (elapsed > 16.0 && elapsed <= 22.0) {
+            setCaption("");
+            setLetter("Hace 5,844 días, un día como hoy, un 9 de septiembre pero del 2010, el mundo tuvo la oportunidad de conocer al ser más hermoso jamás existido...");
+
+            if (envelopeGroup) envelopeGroup.visible = true;
+            if (solarSystemGroup) solarSystemGroup.visible = false;
+
+            // Animate envelope flap opening & paper sliding out
+            const openProg = Math.min(1, Math.max(0, (elapsed - 17.5) / 2.5));
+            if (envelopeFlap) envelopeFlap.rotation.x = -Math.PI * 0.85 * openProg;
+            if (letterPaperMesh) {
+                letterPaperMesh.visible = openProg > 0.1;
+                letterPaperMesh.position.y = openProg * 9;
+            }
+
+            const targetCamPos = new THREE.Vector3(0, 0, 85);
+            camera.position.lerp(targetCamPos, 0.05);
+            camera.lookAt(0, 0, 40);
+        }
+
+        // --- Stage 1: The Moon (22.0s - 28.0s) ---
+        else if (elapsed > 22.0 && elapsed <= 28.0) {
+            setLetter("...tan hermosa que la Luna la admiraba...");
+
+            if (envelopeGroup) {
+                envelopeGroup.position.lerp(new THREE.Vector3(25, -15, 30), 0.05);
+                envelopeGroup.scale.lerp(new THREE.Vector3(0.5, 0.5, 0.5), 0.05);
+            }
+            if (solarSystemGroup) solarSystemGroup.visible = true;
+
+            if (moonOnlyMesh) {
+                const targetCamPos = new THREE.Vector3(-80, 10, 480);
+                camera.position.lerp(targetCamPos, 0.06);
+                camera.lookAt(-80, 10, 450);
+            }
+        }
+
+        // --- Stage 2: Earth & Angel Disguise (28.0s - 34.0s) ---
+        else if (elapsed > 28.0 && elapsed <= 34.0) {
+            setLetter("...tan hermosa que se piensa que ella no es de la Tierra, tal vez es un ángel disfrazada de humana...");
 
             if (earthMesh) {
-                // Camera smoothly follows Earth as it orbits the Sun
                 const earthWorldPos = new THREE.Vector3();
                 earthMesh.getWorldPosition(earthWorldPos);
 
@@ -1333,34 +1538,33 @@ function animate(timestamp) {
             }
         }
 
-        // Stage 2: Zoom to the Sun (23.0s - 29.0s)
-        else if (elapsed > 23.0 && elapsed <= 29.0) {
-            setCaption("Mi amor por ti es más grande que esta estrella");
+        // --- Stage 3: The Sun (34.0s - 40.0s) ---
+        else if (elapsed > 34.0 && elapsed <= 40.0) {
+            setLetter("...su sonrisa brilla más que el Sol...");
 
             const targetCamPos = new THREE.Vector3(0, 15, 45);
             camera.position.lerp(targetCamPos, 0.05);
             camera.lookAt(0, 0, 0);
         }
 
-        // Stage 3: Full Solar System Overview (29.0s - 36.0s)
-        else if (elapsed > 29.0 && elapsed <= 36.0) {
-            setCaption("Esto no es ni siquiera el 1% de mi amor para ti mi querida");
+        // --- Stage 4: Full Solar System (40.0s - 47.0s) ---
+        else if (elapsed > 40.0 && elapsed <= 47.0) {
+            setLetter("...nuestro sistema solar es demasiado pequeño en comparación de su bella mirada...");
 
             const targetCamPos = new THREE.Vector3(0, 140, 260);
             camera.position.lerp(targetCamPos, 0.04);
             camera.lookAt(0, 0, 0);
         }
 
-        // Stage 4: Turn Camera into Deep Space & Warp Speed Travel (36.0s - 42.0s)
-        else if (elapsed > 36.0 && elapsed <= 42.0) {
-            setCaption("Viajando más allá de las estrellas por ti...");
+        // --- Stage 5: Future Wife Ana & Deep Space Travel (47.0s - 54.0s) ---
+        else if (elapsed > 47.0 && elapsed <= 54.0) {
+            setLetter("Aquella ser llamada Ana es la encarnación misma de la hermosura en persona y soy muy afortunado en tenerla como futura esposa...");
 
             warpLinesGroup.visible = true;
 
-            // Animate warp speed streaks toward black hole (-Z direction)
             const warpPositions = warpLinesGroup.children[0].geometry.attributes.position.array;
             for (let i = 0; i < warpPositions.length / 6; i++) {
-                warpPositions[i * 6 + 2] += 25; // move fast in Z
+                warpPositions[i * 6 + 2] += 25;
                 warpPositions[i * 6 + 5] += 25;
                 if (warpPositions[i * 6 + 2] > camera.position.z) {
                     warpPositions[i * 6 + 2] -= 800;
@@ -1369,13 +1573,12 @@ function animate(timestamp) {
             }
             warpLinesGroup.children[0].geometry.attributes.position.needsUpdate = true;
 
-            // Camera rotates and speeds forward into deep space towards black hole (-Z)
             const targetCamPos = new THREE.Vector3(0, 0, -1200);
             camera.position.lerp(targetCamPos, 0.04);
             camera.lookAt(0, 0, -1800);
         }
 
-        // Update Black Hole particles ("bolitas") dynamically in 3D circulation
+        // Update Black Hole particles
         if (bhParticleData.length > 0 && bhParticlesPositions) {
             for (let i = 0; i < bhParticleData.length; i++) {
                 const data = bhParticleData[i];
@@ -1386,15 +1589,12 @@ function animate(timestamp) {
                 let z = Math.sin(data.angle) * data.radius;
 
                 if (data.loopType === 1) {
-                    // Over top and behind loop
                     y = Math.sin(data.angle) * (data.radius * 0.75);
                     z = Math.cos(data.angle) * (data.radius * 0.45);
                 } else if (data.loopType === 2) {
-                    // Under bottom loop
                     y = -Math.sin(data.angle) * (data.radius * 0.75);
                     z = Math.cos(data.angle) * (data.radius * 0.45);
                 } else {
-                    // Accretion disk plane wobble
                     y = Math.sin(data.angle * 2) * 1.5;
                 }
 
@@ -1405,9 +1605,9 @@ function animate(timestamp) {
             bhParticlesGeo.attributes.position.needsUpdate = true;
         }
 
-        // Stage 5: Extended Arrival at Black Hole (42.0s - 52.0s)
-        if (elapsed > 42.0 && elapsed <= 52.0) {
-            setCaption("Mi amor por ti supera a un agujero negro y es capaz de entrar y volver de él por ti");
+        // --- Stage 6: Black Hole (54.0s - 62.0s) ---
+        else if (elapsed > 54.0 && elapsed <= 62.0) {
+            setLetter("...me he vuelto tan loco por ella que entraría y saldría de un agujero negro si me lo pidiera...");
 
             warpLinesGroup.visible = false;
             blackHoleGroup.visible = true;
@@ -1420,33 +1620,44 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -1800);
         }
 
-        // Stage 6: Transition to Separate Galaxy Scene in Deep Space (52.0s - 61.0s)
-        else if (elapsed > 52.0 && elapsed <= 61.0) {
-            setCaption("Mi amor por ti no tiene límite, por más que tratara de mostrarte el universo no podría ni siquiera mostrarte el 1% de mi amor por vos por que es...");
+        // --- Stage 7: Universe / Galaxy (62.0s - 69.0s) ---
+        else if (elapsed > 62.0 && elapsed <= 69.0) {
+            setLetter("...mi amor por ella es más grande que cualquier universo...");
 
-            // Black Hole scene fades / yields to separate Galaxy scene
             blackHoleGroup.visible = false;
-
-            galaxyParticles.material.opacity = Math.min(1, (elapsed - 52.0) / 2.5);
+            galaxyParticles.material.opacity = Math.min(1, (elapsed - 62.0) / 2.5);
             galaxyParticles.rotation.y += 0.004;
 
-            // Camera looks at separate Galaxy scene at z = -3500
             const targetCamPos = new THREE.Vector3(0, 350, -2880);
             camera.position.lerp(targetCamPos, 0.035);
             camera.lookAt(0, 0, -3500);
         }
 
-        // Stage 7: Infinity Symbol Morphing (61.0s onwards)
-        else if (elapsed > 61.0) {
-            setCaption("Porque mi amor por ti es INFINITO ❤️");
+        // --- Stage 8: Multiverse (69.0s - 76.0s) ---
+        else if (elapsed > 69.0 && elapsed <= 76.0) {
+            setLetter("...y multiverso...");
 
-            blackHoleGroup.visible = false;
+            if (multiverseGroup) {
+                multiverseGroup.visible = true;
+                multiverseGroup.rotation.y += 0.003;
+            }
+
+            const targetCamPos = new THREE.Vector3(0, 450, -2600);
+            camera.position.lerp(targetCamPos, 0.035);
+            camera.lookAt(0, 0, -3500);
+        }
+
+        // --- Stage 9: Infinity Symbol (76.0s onwards) ---
+        else if (elapsed > 76.0) {
+            setLetter("...mi amor por ella al igual que su belleza es INFINITA ❤️🎂✨");
+
+            if (multiverseGroup) multiverseGroup.visible = false;
             galaxyParticles.rotation.y += 0.001;
 
             const positions = galaxyGeometry.attributes.position.array;
             const targetInfinity = galaxyGeometry.attributes.infinityPosition.array;
 
-            const morphFactor = Math.min(1, (elapsed - 61.0) / 4.0);
+            const morphFactor = Math.min(1, (elapsed - 76.0) / 4.0);
             for (let i = 0; i < positions.length; i++) {
                 positions[i] = positions[i] * (1 - morphFactor * 0.02) + targetInfinity[i] * (morphFactor * 0.02);
             }
