@@ -140,34 +140,44 @@ function playCosmicDrone(freq, duration = 6.0) {
 function updateAudioStage(elapsed) {
     if (!audioCtx || !isAudioActive) return;
 
-    // Stage 1: Intro (Heart & Rose)
+    // Stage 0: Intro (Heart & Rose)
     if (elapsed < 16.0) {
         if (currentAudioStage !== 0) {
             currentAudioStage = 0;
             playRomanticChord([261.63, 329.63, 392.00, 523.25], 6.0); // C major7 romantic
         }
     }
-    // Stage 2: Solar System Overview
-    else if (elapsed >= 16.0 && elapsed < 36.0) {
+    // Stage 1: Gift Box Unpacking
+    else if (elapsed >= 16.0 && elapsed < 32.0) {
         if (currentAudioStage !== 1) {
             currentAudioStage = 1;
-            playRomanticChord([196.00, 246.94, 293.66, 369.99], 8.0);
+            playBoxUnpackSoundEffect();
+            playRomanticChord([329.63, 392.00, 493.88, 587.33], 8.0); // E minor7 warm
         }
     }
-    // Stage 3: Speed Warp & Black Hole
-    else if (elapsed >= 36.0 && elapsed < 52.0) {
+    // Stage 2: Cosmic Voyage (Earth, Moon, Sun, Solar System)
+    else if (elapsed >= 32.0 && elapsed < 112.0) {
         if (currentAudioStage !== 2) {
             currentAudioStage = 2;
-            playCosmicDrone(65.41, 10.0);
-            playRomanticChord([130.81, 164.81, 196.00, 246.94], 10.0);
+            playRomanticChord([196.00, 246.94, 293.66, 369.99], 10.0);
+            playCosmicDrone(130.81, 8.0);
         }
     }
-    // Stage 4: Vast Galaxy Zoom & Infinity
-    else if (elapsed >= 52.0) {
+    // Stage 3: Universe, Multiverse & Black Hole
+    else if (elapsed >= 112.0 && elapsed < 172.0) {
         if (currentAudioStage !== 3) {
             currentAudioStage = 3;
-            playRomanticChord([220.00, 277.18, 329.63, 440.00, 554.37], 12.0); // A Major celestial chord
-            playCosmicDrone(110.00, 12.0);
+            playCosmicDrone(65.41, 12.0);
+            playRomanticChord([130.81, 164.81, 196.00, 246.94], 12.0);
+        }
+    }
+    // Stage 4: 3D Infinity Particles Light Finale
+    else if (elapsed >= 172.0) {
+        if (currentAudioStage !== 4) {
+            currentAudioStage = 4;
+            playRomanticChord([220.00, 277.18, 329.63, 440.00, 554.37], 14.0); // Celestial A Major chord
+            playCosmicDrone(110.00, 14.0);
+            playSparkleSoundEffect();
         }
     }
 }
@@ -965,8 +975,7 @@ function init3D() {
     // 3D Gift Box & Popping Hearts
     create3DGiftBoxAndHearts();
 
-    // 3D Infinity Mesh & Rich Finale Floating Assets
-    create3DInfinityMesh();
+    // Rich Finale Floating Assets (Particles form the sole 3D Infinity loop)
     createRichFinaleAssets();
 
     // Camera-attached 3D Flower Bouquet (for 1st-person view during space travel)
@@ -1611,38 +1620,6 @@ function build3DBirthdayCake() {
     return cake;
 }
 
-function create3DInfinityMesh() {
-    infinityGroup = new THREE.Group();
-    infinityGroup.position.set(0, 0, -1800); // Centered in view at stage 7/8!
-
-    const curvePts = [];
-    const scale = 40;
-    for (let t = 0; t <= Math.PI * 2; t += 0.05) {
-        const denom = 1 + Math.sin(t) * Math.sin(t);
-        const x = (scale * Math.cos(t)) / denom;
-        const y = (scale * Math.sin(t) * Math.cos(t)) / denom;
-        curvePts.push(new THREE.Vector3(x, y, 0));
-    }
-
-    const curve = new THREE.CatmullRomCurve3(curvePts, true);
-    const tubeGeo = new THREE.TubeGeometry(curve, 128, 3.8, 16, true);
-    const tubeMat = new THREE.MeshStandardMaterial({
-        color: 0xff0055,
-        emissive: 0xff0055,
-        emissiveIntensity: 0.7,
-        roughness: 0.2,
-        metalness: 0.8
-    });
-
-    const infinityMesh = new THREE.Mesh(tubeGeo, tubeMat);
-    infinityGroup.add(infinityMesh);
-
-    const infLight = new THREE.PointLight(0xff0055, 4.0, 300);
-    infinityGroup.add(infLight);
-
-    infinityGroup.visible = false;
-    scene.add(infinityGroup);
-}
 
 function createRichFinaleAssets() {
     finaleFloatingGroup = new THREE.Group();
@@ -2417,20 +2394,14 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -1800);
         }
 
-        // --- Stage 7 & 8: Persistent Rich 3D Infinity Loop, Floating Roses & Hearts ("porque mi amor para ella es infinito") ---
+        // --- Stage 7 & 8: Persistent Rich 3D Light Particle Infinity Loop, Floating Roses & Hearts ("porque mi amor para ella es infinito") ---
         else if (currentActiveScene >= 7) {
             if (blackHoleGroup) {
                 blackHoleGroup.visible = true;
-                // Hide black sphere, disk & lens rings so ONLY the morphing particles remain!
+                // Hide black sphere, disk & lens rings so ONLY the morphing particles forming the 3D Infinity light loop remain!
                 blackHoleGroup.children.forEach(c => { if (c !== blackHoleParticlesGroup) c.visible = false; });
                 blackHoleParticlesGroup.rotation.y += 0.012;
                 blackHoleParticlesGroup.rotation.z = Math.sin(time3D * 1.2) * 0.1;
-            }
-
-            if (infinityGroup) {
-                infinityGroup.visible = true;
-                infinityGroup.rotation.y += 0.015;
-                infinityGroup.rotation.z = Math.sin(time3D * 1.2) * 0.1;
             }
 
             if (finaleFloatingGroup) {
