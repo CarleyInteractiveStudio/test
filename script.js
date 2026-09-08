@@ -1416,7 +1416,11 @@ function createCinematicBlackHole() {
         const tiltFactor = Math.random();
         const loopType = tiltFactor < 0.4 ? 0 : (tiltFactor < 0.7 ? 1 : 2);
 
-        bhParticleData.push({ radius, angle, speed, loopType });
+        // Parameter for Infinity lemniscate curve
+        const infT = Math.random() * Math.PI * 2;
+        const infSpeed = 0.01 + Math.random() * 0.015;
+
+        bhParticleData.push({ radius, angle, speed, loopType, infT, infSpeed });
 
         const x = Math.cos(angle) * radius;
         let y = 0;
@@ -1551,16 +1555,20 @@ function create3DInfinityMesh() {
     }
 
     const curve = new THREE.CatmullRomCurve3(curvePts, true);
-    const tubeGeo = new THREE.TubeGeometry(curve, 128, 2.5, 16, true);
+    const tubeGeo = new THREE.TubeGeometry(curve, 128, 3.5, 16, true);
     const tubeMat = new THREE.MeshStandardMaterial({
         color: 0xff0055,
-        emissive: 0x880022,
+        emissive: 0xff0055,
+        emissiveIntensity: 0.6,
         roughness: 0.2,
         metalness: 0.8
     });
 
     const infinityMesh = new THREE.Mesh(tubeGeo, tubeMat);
     infinityGroup.add(infinityMesh);
+
+    const infLight = new THREE.PointLight(0xff0055, 3.0, 200);
+    infinityGroup.add(infLight);
 
     infinityGroup.visible = false;
     scene.add(infinityGroup);
@@ -1676,27 +1684,43 @@ function create3DGiftBoxAndHearts() {
     bouquetGroup.visible = false;
     giftBoxGroup.add(bouquetGroup);
 
-    // 6. 3D Envelope ("Sobre de Carta")
+    // 6. 3D Red Envelope with opening flap ("Sobre Rojo 3D")
     envelopeGroup = new THREE.Group();
     envelopeGroup.position.set(0, 0, 0);
 
-    const envGeo = new THREE.BoxGeometry(10, 7, 0.6);
-    const envMat = new THREE.MeshStandardMaterial({
-        color: 0xfff0db,
-        roughness: 0.5
+    const redEnvelopeMat = new THREE.MeshStandardMaterial({
+        color: 0xd32f2f,
+        roughness: 0.3,
+        metalness: 0.2
     });
-    const envBody = new THREE.Mesh(envGeo, envMat);
+
+    const envGeo = new THREE.BoxGeometry(12, 8, 0.6);
+    const envBody = new THREE.Mesh(envGeo, redEnvelopeMat);
     envelopeGroup.add(envBody);
 
+    // Opening Triangular Flap
+    const flapShape = new THREE.Shape();
+    flapShape.moveTo(-6, 0);
+    flapShape.lineTo(6, 0);
+    flapShape.lineTo(0, -4);
+    flapShape.lineTo(-6, 0);
+
+    const flapGeo = new THREE.ShapeGeometry(flapShape);
+    const envFlap = new THREE.Mesh(flapGeo, redEnvelopeMat);
+    envFlap.position.set(0, 4, 0.31);
+    envFlap.name = "envelopeFlap";
+    envelopeGroup.add(envFlap);
+
+    // Gold Heart Wax Seal
     const sealGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.4, 24);
     const sealMat = new THREE.MeshStandardMaterial({
-        color: 0xb30000,
-        roughness: 0.3,
-        metalness: 0.3
+        color: 0xffd700,
+        roughness: 0.2,
+        metalness: 0.8
     });
     const sealMesh = new THREE.Mesh(sealGeo, sealMat);
     sealMesh.rotation.x = Math.PI / 2;
-    sealMesh.position.set(0, 0, 0.4);
+    sealMesh.position.set(0, 2, 0.55);
     envelopeGroup.add(sealMesh);
 
     envelopeGroup.visible = false;
@@ -2014,21 +2038,27 @@ function animate(timestamp) {
 
         if (sunMesh) sunMesh.rotation.y += 0.005;
 
-        // Movie credit text vertical scrolling inside sheet
         const time3D = elapsed - 16.0;
-        setLetterVisible(time3D > 1.5);
 
-        // Keep 3D Flower bouquet visible attached to camera (1st person view) during cosmic tour!
+        // Reveal Letter Parchment Overlay ONLY AFTER Gift Box Cinematics complete (at 18s)!
+        setLetterVisible(time3D >= 18.0);
+
+        // Keep 3D Flower bouquet attached to camera (1st person view) after it rises out!
         if (cameraFlowerBouquet) {
-            cameraFlowerBouquet.visible = time3D > 5.0; // Appears right after gift box opening!
+            cameraFlowerBouquet.visible = time3D >= 10.0;
             if (cameraFlowerBouquet.visible) {
                 cameraFlowerBouquet.rotation.y = 0.3 + Math.sin(time3D * 1.2) * 0.05;
             }
         }
 
-        if (creditsContent && time3D > 2.0) {
-            const scrollOffset = (time3D - 2.0) * 18;
-            creditsContent.style.transform = `translateY(-${scrollOffset}px)`;
+        // Letter text starts scrolling ONLY after 18 seconds (when cinematics finish)!
+        if (creditsContent) {
+            if (time3D >= 18.0) {
+                const scrollOffset = (time3D - 18.0) * 15; // Smooth slow scroll pace
+                creditsContent.style.transform = `translateY(-${scrollOffset}px)`;
+            } else {
+                creditsContent.style.transform = `translateY(0px)`;
+            }
         }
 
         // Animate candle flames flicker
@@ -2038,18 +2068,18 @@ function animate(timestamp) {
             c.light.intensity = 1.5 * flicker;
         });
 
-        // Determine current active scene based on text scrolling position (at ~65%-75% of viewport)
-        if (time3D <= 12.0) currentActiveScene = 0;       // Gift box: Sequential Unpacking (Champagne -> Cake -> Bouquet -> Envelope -> Letter)
-        else if (time3D <= 28.0) currentActiveScene = 1;  // Earth (Stats & Birth)
-        else if (time3D <= 38.0) currentActiveScene = 2;  // Moon ISOLATED ("su hermosa sonrisa brilla más que la luna")
-        else if (time3D <= 48.0) currentActiveScene = 3;  // Sun ("su mirada atractiva alimenta de energía nuestra estrella")
-        else if (time3D <= 58.0) currentActiveScene = 4;  // Solar System ("y si comparamos nuestro sistema solar")
-        else if (time3D <= 74.0) currentActiveScene = 5;  // Universe & Multiverses ("o si pongamos el universo entero... Dios...")
-        else if (time3D <= 88.0) currentActiveScene = 6;  // Black Hole ("el loco que entraría y saldría de un agujero negro")
-        else if (time3D <= 104.0) currentActiveScene = 7; // Infinity 3D ("porque mi amor para ella es infinito")
+        // Determine current active scene based on time3D timeline
+        if (time3D <= 18.0) currentActiveScene = 0;       // Gift box: Sequential Unpacking Cinematics
+        else if (time3D <= 38.0) currentActiveScene = 1;  // Earth (Stats & Birth)
+        else if (time3D <= 52.0) currentActiveScene = 2;  // Moon ISOLATED ("su hermosa sonrisa brilla más que la luna")
+        else if (time3D <= 65.0) currentActiveScene = 3;  // Sun ("su mirada atractiva alimenta de energía nuestra estrella")
+        else if (time3D <= 78.0) currentActiveScene = 4;  // Solar System ("y si comparamos nuestro sistema solar")
+        else if (time3D <= 98.0) currentActiveScene = 5;  // Universe & Multiverses ("o si pongamos el universo entero... Dios...")
+        else if (time3D <= 118.0) currentActiveScene = 6; // Black Hole ("el loco que entraría y saldría de un agujero negro")
+        else if (time3D <= 138.0) currentActiveScene = 7; // Infinity 3D ("porque mi amor para ella es infinito")
         else currentActiveScene = 8;                      // Grand Finale
 
-        // --- Stage 0: 3D Gift Box Sequential Unpacking (0s - 12s) ---
+        // --- Stage 0: 3D Gift Box Sequential Unpacking Cinematics (0s - 18s) ---
         if (currentActiveScene === 0) {
             if (giftBoxGroup) giftBoxGroup.visible = true;
             if (solarSystemGroup) solarSystemGroup.visible = false;
@@ -2060,48 +2090,69 @@ function animate(timestamp) {
                 giftLidGroup.position.z = -openProg * 14;
             }
 
-            // 1. Champagne emerges first (1.5s - 3.5s)
-            const champProg = Math.min(1, Math.max(0, (time3D - 1.5) / 2.0));
+            // 1. Champagne rises high up and lowers to left position (1.5s - 5.5s)
             if (champagneGroup) {
-                champagneGroup.visible = champProg > 0;
-                champagneGroup.position.y = champProg * 4;
-                champagneGroup.position.x = -10 * champProg;
-                champagneGroup.position.z = 2 * champProg;
+                if (time3D >= 1.5) {
+                    champagneGroup.visible = true;
+                    const cPhase = Math.min(1, (time3D - 1.5) / 4.0);
+                    const riseHeight = Math.sin(cPhase * Math.PI) * 16;
+                    champagneGroup.position.y = 2 + riseHeight;
+                    champagneGroup.position.x = -12 * cPhase;
+                    champagneGroup.position.z = 4 * cPhase;
+                }
             }
 
-            // 2. Birthday Cake emerges second (3.5s - 5.5s)
-            const cakeProg = Math.min(1, Math.max(0, (time3D - 3.5) / 2.0));
+            // 2. Birthday Cake rises high up and lowers to center position (5.5s - 9.5s)
             if (cakeGroup) {
-                cakeGroup.visible = cakeProg > 0;
-                cakeGroup.position.y = cakeProg * 2.5;
-                cakeGroup.position.x = 0;
-                cakeGroup.position.z = 8 * cakeProg;
+                if (time3D >= 5.5) {
+                    cakeGroup.visible = true;
+                    const kPhase = Math.min(1, (time3D - 5.5) / 4.0);
+                    const riseHeight = Math.sin(kPhase * Math.PI) * 18;
+                    cakeGroup.position.y = 1 + riseHeight;
+                    cakeGroup.position.x = 0;
+                    cakeGroup.position.z = 10 * kPhase;
+                }
             }
 
-            // 3. Bouquet emerges third (5.5s - 7.5s)
-            const bouqProg = Math.min(1, Math.max(0, (time3D - 5.5) / 2.0));
+            // 3. Flower Bouquet rises high up and moves towards camera (9.5s - 13.5s)
             if (bouquetGroup) {
-                bouquetGroup.visible = bouqProg > 0;
-                bouquetGroup.position.y = bouqProg * 4;
-                bouquetGroup.position.x = 10 * bouqProg;
-                bouquetGroup.position.z = 2 * bouqProg;
+                if (time3D >= 9.5) {
+                    bouquetGroup.visible = true;
+                    const bPhase = Math.min(1, (time3D - 9.5) / 4.0);
+                    const riseHeight = Math.sin(bPhase * Math.PI) * 20;
+                    bouquetGroup.position.y = 3 + riseHeight;
+                    bouquetGroup.position.x = 12 * bPhase;
+                    bouquetGroup.position.z = 5 * bPhase;
+                }
             }
 
-            // 4. Envelope emerges fourth (7.5s - 9.0s)
-            const envProg = Math.min(1, Math.max(0, (time3D - 7.5) / 1.5));
+            // 4. Red Envelope rises out, opens flap, and unfolding sheet comes to camera UI (13.5s - 18.0s)
             if (envelopeGroup) {
-                envelopeGroup.visible = envProg > 0 && time3D < 10.5;
-                envelopeGroup.position.y = envProg * 6;
-                envelopeGroup.position.x = -2;
-                envelopeGroup.position.z = 12 * envProg;
+                if (time3D >= 13.5 && time3D < 16.5) {
+                    envelopeGroup.visible = true;
+                    const ePhase = Math.min(1, (time3D - 13.5) / 2.0);
+                    envelopeGroup.position.y = 2 + Math.sin(ePhase * Math.PI) * 12;
+                    envelopeGroup.position.x = 0;
+                    envelopeGroup.position.z = 14 * ePhase;
+
+                    // Open envelope flap
+                    const flapMesh = envelopeGroup.getObjectByName("envelopeFlap");
+                    if (flapMesh && ePhase > 0.5) {
+                        flapMesh.rotation.x = Math.PI * (ePhase - 0.5) * 1.5;
+                    }
+                } else {
+                    envelopeGroup.visible = false;
+                }
             }
 
-            // 5. Letter unfolds & Envelope vanishes (9.0s - 12.0s)
-            const letterProg = Math.min(1, Math.max(0, (time3D - 9.0) / 2.0));
+            // 5. Letter Sheet comes out of envelope and unfolds (15.5s - 18.0s)
             if (letter3DMesh) {
-                letter3DMesh.visible = letterProg > 0;
-                letter3DMesh.scale.set(1.0, letterProg, 1.0);
-                letter3DMesh.position.set(-14, 4, 12);
+                if (time3D >= 15.5) {
+                    letter3DMesh.visible = true;
+                    const lPhase = Math.min(1, (time3D - 15.5) / 2.5);
+                    letter3DMesh.scale.set(1.0, lPhase, 1.0);
+                    letter3DMesh.position.set(0, 6 + lPhase * 2, 20);
+                }
             }
 
             poppingHearts.forEach(h => {
@@ -2205,6 +2256,8 @@ function animate(timestamp) {
 
             if (blackHoleGroup) {
                 blackHoleGroup.visible = true;
+                // Show core black sphere and disk
+                blackHoleGroup.children.forEach(c => { if (c !== blackHoleParticlesGroup) c.visible = true; });
                 if (accretionDiskMesh) accretionDiskMesh.rotation.z += 0.012;
                 if (lensingTopMesh) lensingTopMesh.rotation.z -= 0.008;
             }
@@ -2214,19 +2267,19 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -1800);
         }
 
-        // --- Stage 7: Infinity 3D ("porque mi amor para ella es infinito") ---
+        // --- Stage 7: Particles Morph into 3D Infinity Loop ("porque mi amor para ella es infinito") ---
         else if (currentActiveScene === 7) {
-            if (blackHoleGroup) blackHoleGroup.visible = false;
-
-            if (infinityGroup) {
-                infinityGroup.visible = true;
-                infinityGroup.rotation.y += 0.015;
-                infinityGroup.rotation.z = Math.sin(time3D * 1.5) * 0.1;
+            if (blackHoleGroup) {
+                blackHoleGroup.visible = true;
+                // Hide black sphere, disk & lens rings so ONLY the particles morphing into Infinity remain!
+                blackHoleGroup.children.forEach(c => { if (c !== blackHoleParticlesGroup) c.visible = false; });
+                blackHoleParticlesGroup.rotation.y += 0.012;
+                blackHoleParticlesGroup.rotation.z = Math.sin(time3D * 1.2) * 0.1;
             }
 
-            const targetCamPos = new THREE.Vector3(0, 0, -3410);
+            const targetCamPos = new THREE.Vector3(0, 0, -1710);
             camera.position.lerp(targetCamPos, 0.05);
-            camera.lookAt(0, 0, -3500);
+            camera.lookAt(0, 0, -1800);
         }
 
         // --- Stage 8: Grand Finale / Finale Glow ---
@@ -2240,29 +2293,54 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -3500);
         }
 
-        // Always update Black Hole particles if active
+        // Always update Black Hole / Infinity particles
         if (blackHoleGroup && blackHoleGroup.visible && bhParticleData.length > 0 && bhParticlesPositions) {
+            const isInfinityStage = currentActiveScene >= 7;
+
             for (let i = 0; i < bhParticleData.length; i++) {
                 const data = bhParticleData[i];
-                data.angle += data.speed;
 
-                const x = Math.cos(data.angle) * data.radius;
-                let y = 0;
-                let z = Math.sin(data.angle) * data.radius;
+                if (!isInfinityStage) {
+                    // Standard Black Hole Orbit
+                    data.angle += data.speed;
 
-                if (data.loopType === 1) {
-                    y = Math.sin(data.angle) * (data.radius * 0.75);
-                    z = Math.cos(data.angle) * (data.radius * 0.45);
-                } else if (data.loopType === 2) {
-                    y = -Math.sin(data.angle) * (data.radius * 0.75);
-                    z = Math.cos(data.angle) * (data.radius * 0.45);
+                    const x = Math.cos(data.angle) * data.radius;
+                    let y = 0;
+                    let z = Math.sin(data.angle) * data.radius;
+
+                    if (data.loopType === 1) {
+                        y = Math.sin(data.angle) * (data.radius * 0.75);
+                        z = Math.cos(data.angle) * (data.radius * 0.45);
+                    } else if (data.loopType === 2) {
+                        y = -Math.sin(data.angle) * (data.radius * 0.75);
+                        z = Math.cos(data.angle) * (data.radius * 0.45);
+                    } else {
+                        y = Math.sin(data.angle * 2) * 1.5;
+                    }
+
+                    bhParticlesPositions[i * 3] = x;
+                    bhParticlesPositions[i * 3 + 1] = y;
+                    bhParticlesPositions[i * 3 + 2] = z;
                 } else {
-                    y = Math.sin(data.angle * 2) * 1.5;
-                }
+                    // Morph & Animate along 3D Lemniscate Infinity Curve (∞)
+                    data.infT += data.infSpeed;
+                    const t = data.infT;
+                    const scale = 45;
+                    const denom = 1 + Math.sin(t) * Math.sin(t);
 
-                bhParticlesPositions[i * 3] = x;
-                bhParticlesPositions[i * 3 + 1] = y;
-                bhParticlesPositions[i * 3 + 2] = z;
+                    const infX = (scale * Math.cos(t)) / denom + (Math.sin(t * 3 + i) * 1.8);
+                    const infY = (scale * Math.sin(t) * Math.cos(t)) / denom + (Math.cos(t * 3 + i) * 1.8);
+                    const infZ = Math.sin(t * 2) * 8 + (Math.sin(i) * 2.0);
+
+                    // Smooth interpolation into Infinity shape
+                    const currX = bhParticlesPositions[i * 3];
+                    const currY = bhParticlesPositions[i * 3 + 1];
+                    const currZ = bhParticlesPositions[i * 3 + 2];
+
+                    bhParticlesPositions[i * 3] += (infX - currX) * 0.12;
+                    bhParticlesPositions[i * 3 + 1] += (infY - currY) * 0.12;
+                    bhParticlesPositions[i * 3 + 2] += (infZ - currZ) * 0.12;
+                }
             }
             bhParticlesGeo.attributes.position.needsUpdate = true;
         }
