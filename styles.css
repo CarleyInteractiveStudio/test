@@ -1,0 +1,204 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #000000;
+    font-family: 'Montserrat', sans-serif;
+    color: #ffffff;
+}
+
+/* Preloader Styling */
+#loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at center, #1a0520 0%, #000000 100%);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    transition: opacity 1.5s ease, visibility 1.5s ease;
+}
+
+#loader-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.loader-content {
+    text-align: center;
+    padding: 30px;
+}
+
+.loader-title {
+    font-family: 'Great Vibes', cursive, serif;
+    font-size: 3.8rem;
+    color: #ff3388;
+    text-shadow: 0 0 20px rgba(255, 51, 136, 0.8), 0 0 40px rgba(255, 0, 100, 0.5);
+    margin-bottom: 20px;
+}
+
+#loader-status {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    color: #e0d0f0;
+    margin-bottom: 15px;
+    letter-spacing: 1px;
+}
+
+.loader-bar-bg {
+    width: 280px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    margin: 0 auto 25px auto;
+    overflow: hidden;
+    border: 1px solid rgba(255, 105, 180, 0.3);
+}
+
+#loader-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff007f, #ff66cc);
+    box-shadow: 0 0 12px #ff007f;
+    transition: width 0.3s ease;
+}
+
+.start-button {
+    background: linear-gradient(135deg, #ff007f, #b30059);
+    color: #ffffff;
+    border: none;
+    padding: 14px 32px;
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(255, 0, 127, 0.6);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.start-button:hover {
+    transform: scale(1.06);
+    box-shadow: 0 0 35px rgba(255, 0, 127, 0.9);
+}
+
+.start-button.hidden {
+    display: none;
+}
+
+#canvas2d {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2;
+    pointer-events: none;
+    transition: opacity 2s ease-in-out;
+}
+
+#canvas3d-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    background-color: #000000;
+}
+
+/* Birthday 3D Letter Overlay Styling */
+#letter-overlay {
+    position: absolute;
+    bottom: 5%;
+    right: 4%;
+    z-index: 15;
+    width: 380px;
+    max-width: 90vw;
+    background: linear-gradient(145deg, rgba(28, 12, 35, 0.88), rgba(10, 4, 18, 0.92));
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    border-radius: 16px;
+    padding: 22px 25px;
+    box-shadow: 0 0 30px rgba(255, 0, 127, 0.35), inset 0 0 15px rgba(255, 215, 0, 0.15);
+    backdrop-filter: blur(10px);
+    transition: opacity 1.2s ease, transform 1.2s ease;
+}
+
+#letter-overlay.hidden {
+    opacity: 0;
+    transform: translateY(30px);
+    pointer-events: none;
+}
+
+.letter-header {
+    font-family: 'Great Vibes', cursive;
+    font-size: 1.9rem;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+#letter-text {
+    font-family: 'Cinzel', serif;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: #fff8e7;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    min-height: 110px;
+}
+
+#caption-container {
+    position: absolute;
+    bottom: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    width: 90%;
+    max-width: 850px;
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    text-align: center;
+    transition: opacity 1.2s ease, transform 1.2s ease;
+    opacity: 1;
+}
+
+#caption-container.hidden {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+    pointer-events: none;
+}
+
+#caption-text {
+    font-family: 'Cinzel', serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    line-height: 1.7;
+    color: #fff6e5; /* Golden white tint for noble elegance */
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.9), 0 0 25px rgba(255, 105, 180, 0.7), 0 0 35px rgba(255, 20, 147, 0.5);
+}
+
+@media (max-width: 768px) {
+    #caption-text {
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+    }
+    #caption-container {
+        padding: 15px 20px;
+        bottom: 5%;
+    }
+}
