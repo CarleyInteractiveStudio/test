@@ -793,9 +793,10 @@ let particleTexture;
 // 3D Intro Heart & Flower Morph Meshes
 let intro3DGroup, heart3DMesh, flower3DGroup;
 
-// 3D Gift Box, Lid, Ribbon, Champagne, Bouquet, Envelope & Letter
+// 3D Gift Box, Lid, Ribbon, Champagne, Cake, Bouquet, Envelope, Letter & Infinity
 let giftBoxGroup, giftLidGroup, giftPaperMesh, poppingHearts = [];
-let champagneGroup, bouquetGroup, envelopeGroup, letter3DMesh;
+let champagneGroup, cakeGroup, bouquetGroup, envelopeGroup, letter3DMesh, infinityGroup;
+let candleFlames = [];
 let cameraFlowerBouquet; // 3D Bouquet attached to camera during space travel
 
 // THREE Loading Manager for Preloader
@@ -894,6 +895,9 @@ function init3D() {
 
     // 3D Gift Box & Popping Hearts
     create3DGiftBoxAndHearts();
+
+    // 3D Infinity Mesh for Infinity Stage
+    create3DInfinityMesh();
 
     // Camera-attached 3D Flower Bouquet (for 1st-person view during space travel)
     createCameraFlowerBouquet();
@@ -1452,6 +1456,116 @@ function createCinematicBlackHole() {
 }
 
 
+function build3DBirthdayCake() {
+    const cake = new THREE.Group();
+
+    // Cake Stand Base
+    const standGeo = new THREE.CylinderGeometry(8, 6, 1.2, 32);
+    const standMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.2 });
+    const stand = new THREE.Mesh(standGeo, standMat);
+    stand.position.y = -0.6;
+    cake.add(stand);
+
+    // Bottom Cake Tier (Vanilla Vanilla Pink Frosting)
+    const tier1Geo = new THREE.CylinderGeometry(6.5, 6.5, 4.5, 32);
+    const tier1Mat = new THREE.MeshStandardMaterial({ color: 0xffc0cb, roughness: 0.4 }); // Soft pink
+    const tier1 = new THREE.Mesh(tier1Geo, tier1Mat);
+    tier1.position.y = 2.25;
+    cake.add(tier1);
+
+    // White Cream Drips Tier 1
+    const drip1Geo = new THREE.TorusGeometry(6.55, 0.4, 16, 32);
+    const creamMat = new THREE.MeshStandardMaterial({ color: 0xfff8f0, roughness: 0.3 });
+    const drip1 = new THREE.Mesh(drip1Geo, creamMat);
+    drip1.rotation.x = Math.PI / 2;
+    drip1.position.y = 4.3;
+    cake.add(drip1);
+
+    // Top Cake Tier (Strawberry Cream)
+    const tier2Geo = new THREE.CylinderGeometry(4.2, 4.2, 3.8, 32);
+    const tier2Mat = new THREE.MeshStandardMaterial({ color: 0xff69b4, roughness: 0.35 }); // Hot pink
+    const tier2 = new THREE.Mesh(tier2Geo, tier2Mat);
+    tier2.position.y = 6.4;
+    cake.add(tier2);
+
+    // White Cream Top Ring
+    const drip2 = new THREE.Mesh(new THREE.TorusGeometry(4.25, 0.35, 16, 32), creamMat);
+    drip2.rotation.x = Math.PI / 2;
+    drip2.position.y = 8.3;
+    cake.add(drip2);
+
+    // Strawberries / Cherries on top
+    const berryGeo = new THREE.SphereGeometry(0.65, 16, 16);
+    const berryMat = new THREE.MeshStandardMaterial({ color: 0xd32f2f, roughness: 0.2, metalness: 0.1 });
+    for (let c = 0; c < 8; c++) {
+        const cAngle = (c / 8) * Math.PI * 2;
+        const berry = new THREE.Mesh(berryGeo, berryMat);
+        berry.position.set(Math.cos(cAngle) * 3.2, 8.6, Math.sin(cAngle) * 3.2);
+        cake.add(berry);
+    }
+
+    // Glowing Candles
+    candleFlames = [];
+    const candlePositions = [
+        { x: -1.2, z: 0 },
+        { x: 1.2, z: 0 },
+        { x: 0, z: -1.2 },
+        { x: 0, z: 1.2 }
+    ];
+
+    const candleMat = new THREE.MeshStandardMaterial({ color: 0xffeb3b, roughness: 0.3 });
+    const flameGeo = new THREE.ConeGeometry(0.35, 0.9, 12);
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+
+    candlePositions.forEach(pos => {
+        const candleGeo = new THREE.CylinderGeometry(0.2, 0.2, 2.2, 16);
+        const candle = new THREE.Mesh(candleGeo, candleMat);
+        candle.position.set(pos.x, 9.4, pos.z);
+        cake.add(candle);
+
+        const flame = new THREE.Mesh(flameGeo, flameMat);
+        flame.position.set(pos.x, 10.9, pos.z);
+        cake.add(flame);
+
+        const flameLight = new THREE.PointLight(0xffaa00, 1.5, 10);
+        flameLight.position.set(pos.x, 11.0, pos.z);
+        cake.add(flameLight);
+
+        candleFlames.push({ mesh: flame, light: flameLight, baseScale: 1.0 });
+    });
+
+    return cake;
+}
+
+function create3DInfinityMesh() {
+    infinityGroup = new THREE.Group();
+    infinityGroup.position.set(0, 0, -3500);
+
+    const curvePts = [];
+    const scale = 35;
+    for (let t = 0; t <= Math.PI * 2; t += 0.05) {
+        const denom = 1 + Math.sin(t) * Math.sin(t);
+        const x = (scale * Math.cos(t)) / denom;
+        const y = (scale * Math.sin(t) * Math.cos(t)) / denom;
+        curvePts.push(new THREE.Vector3(x, y, 0));
+    }
+
+    const curve = new THREE.CatmullRomCurve3(curvePts, true);
+    const tubeGeo = new THREE.TubeGeometry(curve, 128, 2.5, 16, true);
+    const tubeMat = new THREE.MeshStandardMaterial({
+        color: 0xff0055,
+        emissive: 0x880022,
+        roughness: 0.2,
+        metalness: 0.8
+    });
+
+    const infinityMesh = new THREE.Mesh(tubeGeo, tubeMat);
+    infinityGroup.add(infinityMesh);
+
+    infinityGroup.visible = false;
+    scene.add(infinityGroup);
+}
+
 function create3DGiftBoxAndHearts() {
     // Isolated location far away from the Solar System (Z = -6000)
     giftBoxGroup = new THREE.Group();
@@ -1512,7 +1626,7 @@ function create3DGiftBoxAndHearts() {
 
     // 3. Champagne Bottles ("Botellas de Champaña")
     champagneGroup = new THREE.Group();
-    champagneGroup.position.set(-6, 2, 0);
+    champagneGroup.position.set(0, 0, 0);
 
     const bottleMat = new THREE.MeshStandardMaterial({
         color: 0x0f3811,
@@ -1527,21 +1641,21 @@ function create3DGiftBoxAndHearts() {
 
     for (let b = 0; b < 2; b++) {
         const bottle = new THREE.Group();
-        bottle.position.set(b * 12, 0, (b % 2) * 2 - 1);
+        bottle.position.set((b - 0.5) * 5, 0, 0);
 
-        const bodyGeo = new THREE.CylinderGeometry(2.2, 2.2, 10, 32);
+        const bodyGeo = new THREE.CylinderGeometry(2.0, 2.0, 9, 32);
         const bodyMesh = new THREE.Mesh(bodyGeo, bottleMat);
-        bodyMesh.position.y = 5;
+        bodyMesh.position.y = 4.5;
         bottle.add(bodyMesh);
 
-        const neckGeo = new THREE.CylinderGeometry(0.8, 2.2, 6, 32);
+        const neckGeo = new THREE.CylinderGeometry(0.7, 2.0, 5, 32);
         const neckMesh = new THREE.Mesh(neckGeo, bottleMat);
-        neckMesh.position.y = 13;
+        neckMesh.position.y = 11.5;
         bottle.add(neckMesh);
 
-        const foilGeo = new THREE.CylinderGeometry(0.85, 1.1, 3.5, 32);
+        const foilGeo = new THREE.CylinderGeometry(0.75, 1.0, 3.0, 32);
         const foilMesh = new THREE.Mesh(foilGeo, foilMat);
-        foilMesh.position.y = 15.5;
+        foilMesh.position.y = 14.0;
         bottle.add(foilMesh);
 
         champagneGroup.add(bottle);
@@ -1549,16 +1663,22 @@ function create3DGiftBoxAndHearts() {
     champagneGroup.visible = false;
     giftBoxGroup.add(champagneGroup);
 
-    // 4. Detailed Flower Bouquet
+    // 4. 3D Birthday Cake ("Pastel de Cumpleaños 3D")
+    cakeGroup = build3DBirthdayCake();
+    cakeGroup.position.set(0, 0, 0);
+    cakeGroup.visible = false;
+    giftBoxGroup.add(cakeGroup);
+
+    // 5. Detailed Flower Bouquet ("Ramo de Flores 3D")
     bouquetGroup = buildBeautifulBouquetGroup();
-    bouquetGroup.position.set(8, 2, 0);
-    bouquetGroup.scale.set(0.8, 0.8, 0.8);
+    bouquetGroup.position.set(0, 0, 0);
+    bouquetGroup.scale.set(0.75, 0.75, 0.75);
     bouquetGroup.visible = false;
     giftBoxGroup.add(bouquetGroup);
 
-    // 5. 3D Envelope ("Sobre de Carta")
+    // 6. 3D Envelope ("Sobre de Carta")
     envelopeGroup = new THREE.Group();
-    envelopeGroup.position.set(12, 4, 0);
+    envelopeGroup.position.set(0, 0, 0);
 
     const envGeo = new THREE.BoxGeometry(10, 7, 0.6);
     const envMat = new THREE.MeshStandardMaterial({
@@ -1582,7 +1702,7 @@ function create3DGiftBoxAndHearts() {
     envelopeGroup.visible = false;
     giftBoxGroup.add(envelopeGroup);
 
-    // 6. 3D Paper Letter Sheet ("Carta 3D Plegada/Desplegada")
+    // 7. 3D Paper Letter Sheet ("Carta 3D Desplegada")
     const letterGeo = new THREE.PlaneGeometry(12, 16);
     const letterMat = new THREE.MeshStandardMaterial({
         color: 0xfffcf0,
@@ -1590,11 +1710,11 @@ function create3DGiftBoxAndHearts() {
         side: THREE.DoubleSide
     });
     letter3DMesh = new THREE.Mesh(letterGeo, letterMat);
-    letter3DMesh.position.set(-12, 4, 0);
+    letter3DMesh.position.set(-14, 4, 0);
     letter3DMesh.visible = false;
     giftBoxGroup.add(letter3DMesh);
 
-    // 7. Popping 3D Hearts
+    // 8. Popping 3D Hearts
     const heartShape = new THREE.Shape();
     heartShape.moveTo(0, 0);
     heartShape.bezierCurveTo(0, 0, -0.5, 0.8, -1.2, 0.8);
@@ -1911,56 +2031,100 @@ function animate(timestamp) {
             creditsContent.style.transform = `translateY(-${scrollOffset}px)`;
         }
 
-        // Determine current active scene based on time sequence synchronized with text
-        if (time3D <= 6.0) currentActiveScene = 0;        // Gift box, Champagne, Bouquet, Envelope & Unfolding Letter
-        else if (time3D <= 14.0) currentActiveScene = 1;  // Earth (Earth first - birthday & stats)
-        else if (time3D <= 20.0) currentActiveScene = 2;  // Moon ("su hermosa sonrisa brilla más que la luna")
-        else if (time3D <= 26.0) currentActiveScene = 3;  // Sun ("su mirada atractiva alimenta de energía nuestra estrella")
-        else if (time3D <= 32.0) currentActiveScene = 4;  // Solar System ("y si comparamos nuestro sistema solar")
-        else if (time3D <= 42.0) currentActiveScene = 5;  // Universe & Multiverses ("o si pongamos el universo entero... Dios...")
-        else if (time3D <= 50.0) currentActiveScene = 6;  // Black Hole ("el loco que entraría y saldría de un agujero negro")
-        else if (time3D <= 58.0) currentActiveScene = 7;  // Infinity ("porque mi amor para ella es infinito")
+        // Animate candle flames flicker
+        candleFlames.forEach(c => {
+            const flicker = 1.0 + Math.sin(timestamp * 0.01 + c.mesh.position.x) * 0.2;
+            c.mesh.scale.set(flicker, flicker * 1.1, flicker);
+            c.light.intensity = 1.5 * flicker;
+        });
+
+        // Determine current active scene based on text scrolling position (at ~65%-75% of viewport)
+        if (time3D <= 12.0) currentActiveScene = 0;       // Gift box: Sequential Unpacking (Champagne -> Cake -> Bouquet -> Envelope -> Letter)
+        else if (time3D <= 28.0) currentActiveScene = 1;  // Earth (Stats & Birth)
+        else if (time3D <= 38.0) currentActiveScene = 2;  // Moon ISOLATED ("su hermosa sonrisa brilla más que la luna")
+        else if (time3D <= 48.0) currentActiveScene = 3;  // Sun ("su mirada atractiva alimenta de energía nuestra estrella")
+        else if (time3D <= 58.0) currentActiveScene = 4;  // Solar System ("y si comparamos nuestro sistema solar")
+        else if (time3D <= 74.0) currentActiveScene = 5;  // Universe & Multiverses ("o si pongamos el universo entero... Dios...")
+        else if (time3D <= 88.0) currentActiveScene = 6;  // Black Hole ("el loco que entraría y saldría de un agujero negro")
+        else if (time3D <= 104.0) currentActiveScene = 7; // Infinity 3D ("porque mi amor para ella es infinito")
         else currentActiveScene = 8;                      // Grand Finale
 
-        // --- Stage 0: 3D Gift Box Opening, Champagne, Bouquet, Envelope & Unfolding Letter (16.0s - 22.0s) ---
+        // --- Stage 0: 3D Gift Box Sequential Unpacking (0s - 12s) ---
         if (currentActiveScene === 0) {
             if (giftBoxGroup) giftBoxGroup.visible = true;
             if (solarSystemGroup) solarSystemGroup.visible = false;
 
-            const openProg = Math.min(1, Math.max(0, (time3D - 0.8) / 2.0));
+            const openProg = Math.min(1, Math.max(0, (time3D - 0.5) / 1.5));
             if (giftLidGroup) {
                 giftLidGroup.rotation.x = -Math.PI * 0.75 * openProg;
-                giftLidGroup.position.z = -openProg * 12;
+                giftLidGroup.position.z = -openProg * 14;
             }
 
-            if (champagneGroup) champagneGroup.visible = openProg > 0.2;
-            if (bouquetGroup) bouquetGroup.visible = openProg > 0.3;
-            if (envelopeGroup) envelopeGroup.visible = openProg > 0.5;
+            // 1. Champagne emerges first (1.5s - 3.5s)
+            const champProg = Math.min(1, Math.max(0, (time3D - 1.5) / 2.0));
+            if (champagneGroup) {
+                champagneGroup.visible = champProg > 0;
+                champagneGroup.position.y = champProg * 4;
+                champagneGroup.position.x = -10 * champProg;
+                champagneGroup.position.z = 2 * champProg;
+            }
 
+            // 2. Birthday Cake emerges second (3.5s - 5.5s)
+            const cakeProg = Math.min(1, Math.max(0, (time3D - 3.5) / 2.0));
+            if (cakeGroup) {
+                cakeGroup.visible = cakeProg > 0;
+                cakeGroup.position.y = cakeProg * 2.5;
+                cakeGroup.position.x = 0;
+                cakeGroup.position.z = 8 * cakeProg;
+            }
+
+            // 3. Bouquet emerges third (5.5s - 7.5s)
+            const bouqProg = Math.min(1, Math.max(0, (time3D - 5.5) / 2.0));
+            if (bouquetGroup) {
+                bouquetGroup.visible = bouqProg > 0;
+                bouquetGroup.position.y = bouqProg * 4;
+                bouquetGroup.position.x = 10 * bouqProg;
+                bouquetGroup.position.z = 2 * bouqProg;
+            }
+
+            // 4. Envelope emerges fourth (7.5s - 9.0s)
+            const envProg = Math.min(1, Math.max(0, (time3D - 7.5) / 1.5));
+            if (envelopeGroup) {
+                envelopeGroup.visible = envProg > 0 && time3D < 10.5;
+                envelopeGroup.position.y = envProg * 6;
+                envelopeGroup.position.x = -2;
+                envelopeGroup.position.z = 12 * envProg;
+            }
+
+            // 5. Letter unfolds & Envelope vanishes (9.0s - 12.0s)
+            const letterProg = Math.min(1, Math.max(0, (time3D - 9.0) / 2.0));
             if (letter3DMesh) {
-                letter3DMesh.visible = openProg > 0.7;
-                letter3DMesh.scale.set(1.0, openProg, 1.0);
+                letter3DMesh.visible = letterProg > 0;
+                letter3DMesh.scale.set(1.0, letterProg, 1.0);
+                letter3DMesh.position.set(-14, 4, 12);
             }
 
             poppingHearts.forEach(h => {
-                h.mesh.visible = openProg > 0.2;
+                h.mesh.visible = openProg > 0.1;
                 if (h.mesh.visible) {
-                    h.mesh.position.x += h.vx * 0.4;
-                    h.mesh.position.y += h.vy * 0.4;
-                    h.mesh.position.z += h.vz * 0.4;
+                    h.mesh.position.x += h.vx * 0.3;
+                    h.mesh.position.y += h.vy * 0.3;
+                    h.mesh.position.z += h.vz * 0.3;
                     h.mesh.rotation.x += h.rotX;
                     h.mesh.rotation.y += h.rotY;
                 }
             });
 
-            const targetCamPos = new THREE.Vector3(0, 5, -5920);
+            const targetCamPos = new THREE.Vector3(0, 8, -5910);
             camera.position.lerp(targetCamPos, 0.05);
-            camera.lookAt(0, 0, -6000);
+            camera.lookAt(0, 2, -6000);
         }
 
-        // --- Stage 1: Earth (Earth First - Birth Stats & Ana Clara) ---
+        // --- Stage 1: Earth (Birth Stats & Ana Clara) ---
         else if (currentActiveScene === 1) {
             if (solarSystemGroup) solarSystemGroup.visible = true;
+            if (sunMesh) sunMesh.visible = true;
+            planetsList.forEach(p => p.mesh.visible = true);
             if (giftBoxGroup) giftBoxGroup.visible = false;
 
             if (earthMesh) {
@@ -1977,77 +2141,53 @@ function animate(timestamp) {
             }
         }
 
-        // --- Stage 2: The Moon ("su hermosa sonrisa brilla mas que la luna") ---
+        // --- Stage 2: The Moon ISOLATED ("su hermosa sonrisa brilla mas que la luna") ---
         else if (currentActiveScene === 2) {
             if (solarSystemGroup) solarSystemGroup.visible = true;
+            // Hide Sun and other planets so Moon is completely isolated in space!
+            if (sunMesh) sunMesh.visible = false;
+            planetsList.forEach(p => p.mesh.visible = false);
 
             if (moonOnlyMesh) {
+                moonOnlyMesh.visible = true;
+                moonOnlyMesh.rotation.y += 0.005;
                 const targetCamPos = new THREE.Vector3(-95, 10, 480);
                 camera.position.lerp(targetCamPos, 0.06);
                 camera.lookAt(-80, 10, 450);
             }
         }
 
-        // --- Stage 3: The Sun ---
+        // --- Stage 3: The Sun ("su mirada atractiva alimenta de energia nuestra estrella") ---
         else if (currentActiveScene === 3) {
+            if (solarSystemGroup) solarSystemGroup.visible = true;
+            if (sunMesh) sunMesh.visible = true;
+            planetsList.forEach(p => p.mesh.visible = true);
+
             const targetCamPos = new THREE.Vector3(-25, 15, 65);
             camera.position.lerp(targetCamPos, 0.05);
             camera.lookAt(0, 0, 0);
         }
 
-        // --- Stage 4: Full Solar System ---
+        // --- Stage 4: Full Solar System ("y si comparamos nuestro sistema solar") ---
         else if (currentActiveScene === 4) {
+            if (solarSystemGroup) solarSystemGroup.visible = true;
+            if (sunMesh) sunMesh.visible = true;
+            planetsList.forEach(p => p.mesh.visible = true);
+
             const targetCamPos = new THREE.Vector3(-60, 160, 310);
             camera.position.lerp(targetCamPos, 0.04);
             camera.lookAt(0, 0, 0);
         }
 
-        // --- Stage 5: Deep Space Warp Travel ---
+        // --- Stage 5: Universe, Galaxias & Multiverses ---
         else if (currentActiveScene === 5) {
-            warpLinesGroup.visible = true;
+            if (solarSystemGroup) solarSystemGroup.visible = false;
 
-            const warpPositions = warpLinesGroup.children[0].geometry.attributes.position.array;
-            for (let i = 0; i < warpPositions.length / 6; i++) {
-                warpPositions[i * 6 + 2] += 25;
-                warpPositions[i * 6 + 5] += 25;
-                if (warpPositions[i * 6 + 2] > camera.position.z) {
-                    warpPositions[i * 6 + 2] -= 800;
-                    warpPositions[i * 6 + 5] -= 800;
-                }
+            if (galaxyParticles) {
+                galaxyParticles.material.opacity = Math.min(1, (time3D - 58.0) / 2.0);
+                galaxyParticles.rotation.y += 0.004;
             }
-            warpLinesGroup.children[0].geometry.attributes.position.needsUpdate = true;
 
-            const targetCamPos = new THREE.Vector3(-15, 0, -1200);
-            camera.position.lerp(targetCamPos, 0.04);
-            camera.lookAt(0, 0, -1800);
-        }
-
-        // --- Stage 6: Gargantua Black Hole ---
-        else if (currentActiveScene === 6) {
-            warpLinesGroup.visible = false;
-            blackHoleGroup.visible = true;
-
-            if (accretionDiskMesh) accretionDiskMesh.rotation.z += 0.012;
-            if (lensingTopMesh) lensingTopMesh.rotation.z -= 0.008;
-
-            const targetCamPos = new THREE.Vector3(-30, 10, -1725);
-            camera.position.lerp(targetCamPos, 0.05);
-            camera.lookAt(0, 0, -1800);
-        }
-
-        // --- Stage 7: Universe / Galaxy ---
-        else if (currentActiveScene === 7) {
-            blackHoleGroup.visible = false;
-            galaxyParticles.material.opacity = Math.min(1, (time3D - 45.0) / 2.5);
-            galaxyParticles.rotation.y += 0.004;
-
-            const targetCamPos = new THREE.Vector3(-80, 350, -2880);
-            camera.position.lerp(targetCamPos, 0.035);
-            camera.lookAt(0, 0, -3500);
-        }
-
-        // --- Stage 8: Multiverse ---
-        else if (currentActiveScene === 8) {
             if (multiverseGroup) {
                 multiverseGroup.visible = true;
                 multiverseGroup.rotation.y += 0.003;
@@ -2058,18 +2198,44 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -3500);
         }
 
-        // --- Stage 9: Grand Finale / Universe Fade-out ---
-        else if (currentActiveScene === 9) {
+        // --- Stage 6: Gargantua Black Hole ("el loco que entraria y saldria de un agujero negro") ---
+        else if (currentActiveScene === 6) {
             if (multiverseGroup) multiverseGroup.visible = false;
-            if (galaxyParticles) {
-                galaxyParticles.material.opacity = Math.max(0, galaxyParticles.material.opacity - 0.015);
+            if (galaxyParticles) galaxyParticles.material.opacity = 0;
+
+            if (blackHoleGroup) {
+                blackHoleGroup.visible = true;
+                if (accretionDiskMesh) accretionDiskMesh.rotation.z += 0.012;
+                if (lensingTopMesh) lensingTopMesh.rotation.z -= 0.008;
             }
 
-            if (letterSheetContainer) {
-                letterSheetContainer.style.opacity = Math.max(0, parseFloat(letterSheetContainer.style.opacity || 1) - 0.02);
+            const targetCamPos = new THREE.Vector3(-30, 10, -1725);
+            camera.position.lerp(targetCamPos, 0.05);
+            camera.lookAt(0, 0, -1800);
+        }
+
+        // --- Stage 7: Infinity 3D ("porque mi amor para ella es infinito") ---
+        else if (currentActiveScene === 7) {
+            if (blackHoleGroup) blackHoleGroup.visible = false;
+
+            if (infinityGroup) {
+                infinityGroup.visible = true;
+                infinityGroup.rotation.y += 0.015;
+                infinityGroup.rotation.z = Math.sin(time3D * 1.5) * 0.1;
             }
 
-            const targetCamPos = new THREE.Vector3(0, 0, -3350);
+            const targetCamPos = new THREE.Vector3(0, 0, -3410);
+            camera.position.lerp(targetCamPos, 0.05);
+            camera.lookAt(0, 0, -3500);
+        }
+
+        // --- Stage 8: Grand Finale / Finale Glow ---
+        else if (currentActiveScene === 8) {
+            if (infinityGroup) {
+                infinityGroup.rotation.y += 0.02;
+            }
+
+            const targetCamPos = new THREE.Vector3(0, 0, -3420);
             camera.position.lerp(targetCamPos, 0.04);
             camera.lookAt(0, 0, -3500);
         }
