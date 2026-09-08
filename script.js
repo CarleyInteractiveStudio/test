@@ -66,6 +66,50 @@ function playRomanticChord(notes, duration = 4.0) {
     });
 }
 
+function playSparkleSoundEffect() {
+    if (!audioCtx || !isAudioActive) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sine';
+    const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+    const freq = freqs[Math.floor(Math.random() * freqs.length)];
+
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+
+    osc.connect(gain);
+    gain.connect(synthGainNode);
+
+    osc.start(now);
+    osc.stop(now + 0.4);
+}
+
+function playBoxUnpackSoundEffect() {
+    if (!audioCtx || !isAudioActive) return;
+    const now = audioCtx.currentTime;
+    const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
+
+    notes.forEach((f, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, now + idx * 0.12);
+
+        gain.gain.setValueAtTime(0, now + idx * 0.12);
+        gain.gain.linearRampToValueAtTime(0.06, now + idx * 0.12 + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.12 + 0.8);
+
+        osc.connect(gain);
+        gain.connect(synthGainNode);
+
+        osc.start(now + idx * 0.12);
+        osc.stop(now + idx * 0.12 + 0.8);
+    });
+}
+
 function playCosmicDrone(freq, duration = 6.0) {
     if (!audioCtx || !isAudioActive) return;
     const now = audioCtx.currentTime;
@@ -521,6 +565,7 @@ function handlePointer(e) {
         for (let i = 0; i < 3; i++) {
             sparkles.push(new Sparkle(x, y));
         }
+        playSparkleSoundEffect();
     }
 }
 
@@ -528,52 +573,75 @@ window.addEventListener('mousemove', handlePointer);
 window.addEventListener('touchmove', handlePointer);
 window.addEventListener('click', handlePointer);
 
-// Drag Interactivity for 3D Letter Sheet UI
+// Drag Interactivity for 3D Letter Sheet UI & 3D Flower Bouquet Rotation
 let isDraggingLetter = false;
+let isDraggingBouquet = false;
 let dragStartX = 0, dragStartY = 0;
 let sheetLeft = 0, sheetTop = 0;
+let bouquetRotX = Math.PI * 0.42, bouquetRotY = -0.2;
 
-if (letterSheetContainer) {
-    const startDrag = (e) => {
+const startPointer = (e) => {
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+    // Check if dragging letter container
+    if (letterSheetContainer && letterSheetContainer.contains(e.target)) {
         isDraggingLetter = true;
-        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
         dragStartX = clientX;
         dragStartY = clientY;
-
         const rect = letterSheetContainer.getBoundingClientRect();
         sheetLeft = rect.left;
         sheetTop = rect.top;
-
         letterSheetContainer.style.bottom = 'auto';
         letterSheetContainer.style.right = 'auto';
         letterSheetContainer.style.left = `${sheetLeft}px`;
         letterSheetContainer.style.top = `${sheetTop}px`;
-    };
+        return;
+    }
 
-    const doDrag = (e) => {
-        if (!isDraggingLetter) return;
-        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    // Otherwise drag to rotate 3D Flower Bouquet in 3D Space!
+    if (cameraFlowerBouquet && cameraFlowerBouquet.visible) {
+        isDraggingBouquet = true;
+        dragStartX = clientX;
+        dragStartY = clientY;
+    }
+};
+
+const movePointer = (e) => {
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+    if (isDraggingLetter && letterSheetContainer) {
         const deltaX = clientX - dragStartX;
         const deltaY = clientY - dragStartY;
-
         letterSheetContainer.style.left = `${sheetLeft + deltaX}px`;
         letterSheetContainer.style.top = `${sheetTop + deltaY}px`;
-    };
+    } else if (isDraggingBouquet && cameraFlowerBouquet) {
+        const deltaX = clientX - dragStartX;
+        const deltaY = clientY - dragStartY;
+        dragStartX = clientX;
+        dragStartY = clientY;
 
-    const stopDrag = () => {
-        isDraggingLetter = false;
-    };
+        bouquetRotY += deltaX * 0.01;
+        bouquetRotX += deltaY * 0.01;
 
-    letterSheetContainer.addEventListener('mousedown', startDrag);
-    window.addEventListener('mousemove', doDrag);
-    window.addEventListener('mouseup', stopDrag);
+        cameraFlowerBouquet.rotation.y = bouquetRotY;
+        cameraFlowerBouquet.rotation.x = bouquetRotX;
+    }
+};
 
-    letterSheetContainer.addEventListener('touchstart', startDrag, { passive: true });
-    window.addEventListener('touchmove', doDrag, { passive: true });
-    window.addEventListener('touchend', stopDrag);
-}
+const stopPointer = () => {
+    isDraggingLetter = false;
+    isDraggingBouquet = false;
+};
+
+window.addEventListener('mousedown', startPointer);
+window.addEventListener('mousemove', movePointer);
+window.addEventListener('mouseup', stopPointer);
+
+window.addEventListener('touchstart', startPointer, { passive: true });
+window.addEventListener('touchmove', movePointer, { passive: true });
+window.addEventListener('touchend', stopPointer);
 
 // ==========================================
 // PROCEDURAL CANVAS TEXTURES FOR THREE.JS
@@ -793,11 +861,12 @@ let particleTexture;
 // 3D Intro Heart & Flower Morph Meshes
 let intro3DGroup, heart3DMesh, flower3DGroup;
 
-// 3D Gift Box, Lid, Ribbon, Champagne, Cake, Bouquet, Envelope, Letter & Infinity
+// 3D Gift Box, Lid, Ribbon, Champagne, Cake, Bouquet, Envelope, Letter, Infinity & Floating Finale Assets
 let giftBoxGroup, giftLidGroup, giftPaperMesh, poppingHearts = [];
 let champagneGroup, cakeGroup, bouquetGroup, envelopeGroup, letter3DMesh, infinityGroup;
 let candleFlames = [];
 let cameraFlowerBouquet; // 3D Bouquet attached to camera during space travel
+let finaleFloatingGroup, finaleRoses = [], finaleHearts = [];
 
 // THREE Loading Manager for Preloader
 let isExperienceReady = false;
@@ -896,8 +965,9 @@ function init3D() {
     // 3D Gift Box & Popping Hearts
     create3DGiftBoxAndHearts();
 
-    // 3D Infinity Mesh for Infinity Stage
+    // 3D Infinity Mesh & Rich Finale Floating Assets
     create3DInfinityMesh();
+    createRichFinaleAssets();
 
     // Camera-attached 3D Flower Bouquet (for 1st-person view during space travel)
     createCameraFlowerBouquet();
@@ -1543,10 +1613,10 @@ function build3DBirthdayCake() {
 
 function create3DInfinityMesh() {
     infinityGroup = new THREE.Group();
-    infinityGroup.position.set(0, 0, -3500);
+    infinityGroup.position.set(0, 0, -1800); // Centered in view at stage 7/8!
 
     const curvePts = [];
-    const scale = 35;
+    const scale = 40;
     for (let t = 0; t <= Math.PI * 2; t += 0.05) {
         const denom = 1 + Math.sin(t) * Math.sin(t);
         const x = (scale * Math.cos(t)) / denom;
@@ -1555,11 +1625,11 @@ function create3DInfinityMesh() {
     }
 
     const curve = new THREE.CatmullRomCurve3(curvePts, true);
-    const tubeGeo = new THREE.TubeGeometry(curve, 128, 3.5, 16, true);
+    const tubeGeo = new THREE.TubeGeometry(curve, 128, 3.8, 16, true);
     const tubeMat = new THREE.MeshStandardMaterial({
         color: 0xff0055,
         emissive: 0xff0055,
-        emissiveIntensity: 0.6,
+        emissiveIntensity: 0.7,
         roughness: 0.2,
         metalness: 0.8
     });
@@ -1567,11 +1637,87 @@ function create3DInfinityMesh() {
     const infinityMesh = new THREE.Mesh(tubeGeo, tubeMat);
     infinityGroup.add(infinityMesh);
 
-    const infLight = new THREE.PointLight(0xff0055, 3.0, 200);
+    const infLight = new THREE.PointLight(0xff0055, 4.0, 300);
     infinityGroup.add(infLight);
 
     infinityGroup.visible = false;
     scene.add(infinityGroup);
+}
+
+function createRichFinaleAssets() {
+    finaleFloatingGroup = new THREE.Group();
+    finaleFloatingGroup.position.set(0, 0, -1800);
+
+    // 1. Floating 3D Rose Models around Infinity
+    for (let i = 0; i < 18; i++) {
+        const rose = createDetailedRose();
+        const scale = 1.2 + Math.random() * 1.5;
+        rose.scale.set(scale, scale, scale);
+
+        const angle = (i / 18) * Math.PI * 2;
+        const rad = 60 + Math.random() * 50;
+
+        rose.position.set(
+            Math.cos(angle) * rad,
+            (Math.random() - 0.5) * 60,
+            Math.sin(angle) * rad - 20
+        );
+
+        finaleFloatingGroup.add(rose);
+        finaleRoses.push({
+            mesh: rose,
+            rotSpeedX: (Math.random() - 0.5) * 0.02,
+            rotSpeedY: (Math.random() - 0.5) * 0.02,
+            floatOffsetY: Math.random() * Math.PI * 2
+        });
+    }
+
+    // 2. Floating 3D Heart Meshes
+    const heartShape = new THREE.Shape();
+    heartShape.moveTo(0, 0);
+    heartShape.bezierCurveTo(0, 0, -0.8, 1.2, -1.8, 1.2);
+    heartShape.bezierCurveTo(-3.0, 1.2, -3.0, -0.6, -3.0, -0.6);
+    heartShape.bezierCurveTo(-3.0, -1.8, -1.8, -2.7, 0, -3.9);
+    heartShape.bezierCurveTo(1.8, -2.7, 3.0, -1.8, 3.0, -0.6);
+    heartShape.bezierCurveTo(3.0, -0.6, 3.0, 1.2, 1.8, 1.2);
+    heartShape.bezierCurveTo(0.8, 1.2, 0, 0, 0, 0);
+
+    const extrudeSettings = { depth: 0.8, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.3, bevelThickness: 0.3 };
+    const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+
+    const heartColors = [0xff0055, 0xff3388, 0xff66aa, 0xffd700, 0xff1a53];
+
+    for (let i = 0; i < 30; i++) {
+        const hMat = new THREE.MeshStandardMaterial({
+            color: heartColors[i % heartColors.length],
+            metalness: 0.5,
+            roughness: 0.2,
+            emissive: 0x550011
+        });
+
+        const heartMesh = new THREE.Mesh(heartGeo, hMat);
+        const scale = 0.8 + Math.random() * 1.2;
+        heartMesh.scale.set(scale, scale, scale);
+
+        const angle = Math.random() * Math.PI * 2;
+        const rad = 40 + Math.random() * 80;
+
+        heartMesh.position.set(
+            Math.cos(angle) * rad,
+            (Math.random() - 0.5) * 80,
+            (Math.random() - 0.5) * 60
+        );
+
+        finaleFloatingGroup.add(heartMesh);
+        finaleHearts.push({
+            mesh: heartMesh,
+            rotSpeed: (Math.random() - 0.5) * 0.03,
+            floatOffset: Math.random() * Math.PI * 2
+        });
+    }
+
+    finaleFloatingGroup.visible = false;
+    scene.add(finaleFloatingGroup);
 }
 
 function create3DGiftBoxAndHearts() {
@@ -1915,9 +2061,11 @@ function animate(timestamp) {
     if (!startTime) startTime = timestamp;
     const elapsed = (timestamp - startTime) / 1000;
 
-    // Clear 2D canvas appropriately
+    // Clear 2D canvas appropriately & keep shooting stars in background
     if (elapsed > 16.0) {
         ctx2d.clearRect(0, 0, width, height);
+        // Shooting stars during 3D space travel
+        updateAndDrawMeteors(ctx2d, width, height);
     } else {
         ctx2d.fillStyle = 'rgba(0, 0, 0, 0.18)';
         ctx2d.fillRect(0, 0, width, height);
@@ -2269,30 +2417,43 @@ function animate(timestamp) {
             camera.lookAt(0, 0, -1800);
         }
 
-        // --- Stage 7: Particles Morph into 3D Infinity Loop ("porque mi amor para ella es infinito") ---
-        else if (currentActiveScene === 7) {
+        // --- Stage 7 & 8: Persistent Rich 3D Infinity Loop, Floating Roses & Hearts ("porque mi amor para ella es infinito") ---
+        else if (currentActiveScene >= 7) {
             if (blackHoleGroup) {
                 blackHoleGroup.visible = true;
-                // Hide black sphere, disk & lens rings so ONLY the particles morphing into Infinity remain!
+                // Hide black sphere, disk & lens rings so ONLY the morphing particles remain!
                 blackHoleGroup.children.forEach(c => { if (c !== blackHoleParticlesGroup) c.visible = false; });
                 blackHoleParticlesGroup.rotation.y += 0.012;
                 blackHoleParticlesGroup.rotation.z = Math.sin(time3D * 1.2) * 0.1;
             }
 
-            const targetCamPos = new THREE.Vector3(0, 0, -1710);
-            camera.position.lerp(targetCamPos, 0.05);
-            camera.lookAt(0, 0, -1800);
-        }
-
-        // --- Stage 8: Grand Finale / Finale Glow ---
-        else if (currentActiveScene === 8) {
             if (infinityGroup) {
-                infinityGroup.rotation.y += 0.02;
+                infinityGroup.visible = true;
+                infinityGroup.rotation.y += 0.015;
+                infinityGroup.rotation.z = Math.sin(time3D * 1.2) * 0.1;
             }
 
-            const targetCamPos = new THREE.Vector3(0, 0, -3420);
-            camera.position.lerp(targetCamPos, 0.04);
-            camera.lookAt(0, 0, -3500);
+            if (finaleFloatingGroup) {
+                finaleFloatingGroup.visible = true;
+                finaleFloatingGroup.rotation.y += 0.005;
+
+                // Animate floating roses
+                finaleRoses.forEach(r => {
+                    r.mesh.rotation.x += r.rotSpeedX;
+                    r.mesh.rotation.y += r.rotSpeedY;
+                    r.mesh.position.y += Math.sin(time3D * 1.5 + r.floatOffsetY) * 0.05;
+                });
+
+                // Animate floating hearts
+                finaleHearts.forEach(h => {
+                    h.mesh.rotation.y += h.rotSpeed;
+                    h.mesh.position.y += Math.sin(time3D * 2.0 + h.floatOffset) * 0.08;
+                });
+            }
+
+            const targetCamPos = new THREE.Vector3(0, 0, -1700);
+            camera.position.lerp(targetCamPos, 0.05);
+            camera.lookAt(0, 0, -1800);
         }
 
         // Always update Black Hole / Infinity particles
