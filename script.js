@@ -964,46 +964,204 @@ function create3DIntroHeartAndFlower() {
     scene.add(intro3DGroup);
 }
 
+// Helper to construct a realistic, breathtaking 3D Flower Bouquet
+function createDetailedRose() {
+    const roseGroup = new THREE.Group();
+
+    // Color palette for romantic velvet roses
+    const roseColors = [0xd4003d, 0xff1a62, 0xe6004c, 0xc40033, 0xff3377];
+    const baseColor = roseColors[Math.floor(Math.random() * roseColors.length)];
+
+    const petalMat = new THREE.MeshStandardMaterial({
+        color: baseColor,
+        roughness: 0.35,
+        metalness: 0.1,
+        side: THREE.DoubleSide
+    });
+
+    // Outer, middle, and inner petal rings for realistic spiral blooming rose
+    const petalRingConfigs = [
+        { count: 7, radius: 1.6, scaleX: 1.2, scaleY: 1.5, rotX: 0.6, yOffset: 0.2 },
+        { count: 6, radius: 1.0, scaleX: 1.0, scaleY: 1.3, rotX: 0.45, yOffset: 0.5 },
+        { count: 5, radius: 0.5, scaleX: 0.7, scaleY: 1.0, rotX: 0.3, yOffset: 0.8 },
+        { count: 4, radius: 0.2, scaleX: 0.4, scaleY: 0.8, rotX: 0.15, yOffset: 1.0 }
+    ];
+
+    const petalShape = new THREE.SphereGeometry(1, 14, 14);
+    petalShape.scale(1, 0.3, 1.4);
+
+    petalRingConfigs.forEach(config => {
+        for (let p = 0; p < config.count; p++) {
+            const angle = (p / config.count) * Math.PI * 2 + Math.random() * 0.2;
+            const petal = new THREE.Mesh(petalShape, petalMat);
+
+            petal.scale.set(config.scaleX, config.scaleX * 0.4, config.scaleY);
+            petal.position.set(
+                Math.cos(angle) * config.radius,
+                config.yOffset,
+                Math.sin(angle) * config.radius
+            );
+
+            petal.rotation.y = angle + Math.PI / 2;
+            petal.rotation.x = config.rotX;
+            petal.rotation.z = (Math.random() - 0.5) * 0.2;
+
+            roseGroup.add(petal);
+        }
+    });
+
+    // Rose core center bud
+    const centerGeo = new THREE.SphereGeometry(0.45, 12, 12);
+    centerGeo.scale(0.8, 1.4, 0.8);
+    const centerMat = new THREE.MeshStandardMaterial({ color: 0x800020, roughness: 0.2 });
+    const centerMesh = new THREE.Mesh(centerGeo, centerMat);
+    centerMesh.position.y = 1.1;
+    roseGroup.add(centerMesh);
+
+    // Green Sepal base underneath
+    const sepalMat = new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.5 });
+    const sepalGeo = new THREE.ConeGeometry(0.3, 1.2, 5);
+    for (let s = 0; s < 5; s++) {
+        const sAngle = (s / 5) * Math.PI * 2;
+        const sepal = new THREE.Mesh(sepalGeo, sepalMat);
+        sepal.position.set(Math.cos(sAngle) * 0.8, -0.2, Math.sin(sAngle) * 0.8);
+        sepal.rotation.z = -0.8;
+        sepal.rotation.y = sAngle;
+        roseGroup.add(sepal);
+    }
+
+    return roseGroup;
+}
+
+function buildBeautifulBouquetGroup() {
+    const bouquet = new THREE.Group();
+
+    // 1. Elegant Multi-Layered Wrapping Paper (Outer & Inner Tissue)
+    // Outer Luxury Matte Pink Wrapper
+    const wrapOuterGeo = new THREE.ConeGeometry(9.5, 20, 32, 1, true);
+    const wrapOuterMat = new THREE.MeshStandardMaterial({
+        color: 0xfce4ec,
+        roughness: 0.5,
+        metalness: 0.05,
+        side: THREE.DoubleSide
+    });
+    const wrapOuter = new THREE.Mesh(wrapOuterGeo, wrapOuterMat);
+    wrapOuter.rotation.x = Math.PI;
+    wrapOuter.position.y = -3;
+    bouquet.add(wrapOuter);
+
+    // Inner Cream Wrapping Tissue
+    const wrapInnerGeo = new THREE.ConeGeometry(8.8, 18, 32, 1, true);
+    const wrapInnerMat = new THREE.MeshStandardMaterial({
+        color: 0xfff8e7,
+        roughness: 0.6,
+        side: THREE.DoubleSide
+    });
+    const wrapInner = new THREE.Mesh(wrapInnerGeo, wrapInnerMat);
+    wrapInner.rotation.x = Math.PI;
+    wrapInner.position.y = -1.5;
+    bouquet.add(wrapInner);
+
+    // Satin Ribbon Bow at base
+    const ribbonMat = new THREE.MeshStandardMaterial({
+        color: 0xd40055,
+        roughness: 0.2,
+        metalness: 0.3
+    });
+    const bowRing = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.4, 16, 32), ribbonMat);
+    bowRing.rotation.x = Math.PI / 2;
+    bowRing.position.set(0, -7, 0);
+    bouquet.add(bowRing);
+
+    const bowKnotGeo = new THREE.TorusGeometry(1.6, 0.35, 12, 24);
+    const bowLeft = new THREE.Mesh(bowKnotGeo, ribbonMat);
+    bowLeft.position.set(-1.8, -7, 2.0);
+    bowLeft.rotation.y = 0.5;
+    const bowRight = new THREE.Mesh(bowKnotGeo, ribbonMat);
+    bowRight.position.set(1.8, -7, 2.0);
+    bowRight.rotation.y = -0.5;
+    bouquet.add(bowLeft);
+    bouquet.add(bowRight);
+
+    // 2. Leaves & Stems
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x1b5e20, roughness: 0.4, side: THREE.DoubleSide });
+    const leafGeo = new THREE.SphereGeometry(1.8, 10, 10);
+    leafGeo.scale(1.0, 0.15, 2.2);
+
+    for (let l = 0; l < 16; l++) {
+        const lAngle = (l / 16) * Math.PI * 2;
+        const leaf = new THREE.Mesh(leafGeo, leafMat);
+        const lDist = 5.2 + (l % 2) * 1.5;
+        leaf.position.set(Math.cos(lAngle) * lDist, 4.5 + (l % 3) * 0.8, Math.sin(lAngle) * lDist);
+        leaf.rotation.y = lAngle;
+        leaf.rotation.x = 0.4;
+        leaf.rotation.z = (Math.random() - 0.5) * 0.3;
+        bouquet.add(leaf);
+    }
+
+    // 3. Dense Array of Detailed Roses
+    const rosePositions = [
+        // Center crown roses
+        { x: 0, y: 8.5, z: 0, s: 1.3, rx: 0, ry: 0 },
+        { x: -2.2, y: 7.8, z: 1.5, s: 1.2, rx: 0.2, ry: -0.3 },
+        { x: 2.2, y: 7.8, z: -1.5, s: 1.2, rx: -0.2, ry: 0.3 },
+        { x: 1.8, y: 7.8, z: 2.0, s: 1.15, rx: 0.3, ry: 0.2 },
+        { x: -1.8, y: 7.8, z: -2.0, s: 1.15, rx: -0.3, ry: -0.2 },
+        // Outer ring roses
+        { x: -4.2, y: 6.2, z: 0.5, s: 1.1, rx: 0.5, ry: -0.8 },
+        { x: 4.2, y: 6.2, z: -0.5, s: 1.1, rx: -0.5, ry: 0.8 },
+        { x: 0.5, y: 6.2, z: 4.2, s: 1.1, rx: 0.8, ry: 0.1 },
+        { x: -0.5, y: 6.2, z: -4.2, s: 1.1, rx: -0.8, ry: -0.1 },
+        { x: -3.2, y: 6.5, z: 3.2, s: 1.05, rx: 0.6, ry: -0.5 },
+        { x: 3.2, y: 6.5, z: -3.2, s: 1.05, rx: -0.6, ry: 0.5 },
+        { x: 3.2, y: 6.5, z: 3.2, s: 1.05, rx: 0.6, ry: 0.5 },
+        { x: -3.2, y: 6.5, z: -3.2, s: 1.05, rx: -0.6, ry: -0.5 }
+    ];
+
+    rosePositions.forEach(pos => {
+        const rose = createDetailedRose();
+        rose.scale.set(pos.s, pos.s, pos.s);
+        rose.position.set(pos.x, pos.y, pos.z);
+        rose.rotation.x = pos.rx;
+        rose.rotation.y = pos.ry;
+        bouquet.add(rose);
+    });
+
+    // 4. White Gypsophila (Baby's Breath Filler Flowers)
+    const gypMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+    const gypGeo = new THREE.SphereGeometry(0.35, 8, 8);
+
+    for (let g = 0; g < 45; g++) {
+        const gAngle = Math.random() * Math.PI * 2;
+        const gDist = Math.random() * 6.5;
+        const gypCluster = new THREE.Group();
+
+        for (let b = 0; b < 4; b++) {
+            const bud = new THREE.Mesh(gypGeo, gypMat);
+            bud.position.set((Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 0.9);
+            gypCluster.add(bud);
+        }
+
+        gypCluster.position.set(
+            Math.cos(gAngle) * gDist,
+            7.0 + Math.random() * 2.2,
+            Math.sin(gAngle) * gDist
+        );
+        bouquet.add(gypCluster);
+    }
+
+    return bouquet;
+}
+
 function createCameraFlowerBouquet() {
-    cameraFlowerBouquet = new THREE.Group();
+    cameraFlowerBouquet = buildBeautifulBouquetGroup();
 
     // Position at lower-left of 1st-person camera view
-    cameraFlowerBouquet.position.set(-8, -5, -12);
-    cameraFlowerBouquet.rotation.y = 0.3;
+    cameraFlowerBouquet.position.set(-7.5, -4.5, -11);
+    cameraFlowerBouquet.rotation.y = 0.35;
+    cameraFlowerBouquet.rotation.x = -0.2;
     cameraFlowerBouquet.rotation.z = -0.15;
-    cameraFlowerBouquet.scale.set(0.45, 0.45, 0.45);
-
-    const wrapGeo = new THREE.ConeGeometry(7, 16, 32, 1, true);
-    const wrapMat = new THREE.MeshStandardMaterial({ color: 0xffe6ee, roughness: 0.6, side: THREE.DoubleSide });
-    const wrapMesh = new THREE.Mesh(wrapGeo, wrapMat);
-    wrapMesh.rotation.x = Math.PI;
-    wrapMesh.position.y = -2;
-    cameraFlowerBouquet.add(wrapMesh);
-
-    const rosePetalGeo = new THREE.SphereGeometry(1.5, 12, 12);
-    rosePetalGeo.scale(1, 0.4, 1.5);
-    const roseColors = [0xff0055, 0xff3388, 0xff66aa, 0xff0033];
-
-    for (let r = 0; r < 14; r++) {
-        const rose = new THREE.Group();
-        const rAngle = (r / 14) * Math.PI * 2;
-        const dist = (r % 3) * 1.8;
-        rose.position.set(Math.cos(rAngle) * dist, 6 + (r % 2) * 1.2, Math.sin(rAngle) * dist);
-
-        const rMat = new THREE.MeshStandardMaterial({
-            color: roseColors[r % roseColors.length],
-            roughness: 0.3,
-            metalness: 0.1
-        });
-
-        for (let p = 0; p < 8; p++) {
-            const pMesh = new THREE.Mesh(rosePetalGeo, rMat);
-            pMesh.rotation.y = (p / 8) * Math.PI * 2;
-            pMesh.rotation.x = 0.4;
-            rose.add(pMesh);
-        }
-        cameraFlowerBouquet.add(rose);
-    }
+    cameraFlowerBouquet.scale.set(0.42, 0.42, 0.42);
 
     cameraFlowerBouquet.visible = false;
     camera.add(cameraFlowerBouquet);
@@ -1392,44 +1550,9 @@ function create3DGiftBoxAndHearts() {
     giftBoxGroup.add(champagneGroup);
 
     // 4. Detailed Flower Bouquet
-    bouquetGroup = new THREE.Group();
-    bouquetGroup.position.set(6, 2, 0);
-
-    const wrapGeo = new THREE.ConeGeometry(7, 16, 32, 1, true);
-    const wrapMat = new THREE.MeshStandardMaterial({
-        color: 0xffe6ee,
-        roughness: 0.6,
-        side: THREE.DoubleSide
-    });
-    const wrapMesh = new THREE.Mesh(wrapGeo, wrapMat);
-    wrapMesh.rotation.x = Math.PI;
-    wrapMesh.position.y = -2;
-    bouquetGroup.add(wrapMesh);
-
-    const rosePetalGeo = new THREE.SphereGeometry(1.5, 12, 12);
-    rosePetalGeo.scale(1, 0.4, 1.5);
-    const roseColors = [0xff0055, 0xff3388, 0xff66aa, 0xff0033];
-
-    for (let r = 0; r < 14; r++) {
-        const rose = new THREE.Group();
-        const rAngle = (r / 14) * Math.PI * 2;
-        const dist = (r % 3) * 1.8;
-        rose.position.set(Math.cos(rAngle) * dist, 6 + (r % 2) * 1.2, Math.sin(rAngle) * dist);
-
-        const rMat = new THREE.MeshStandardMaterial({
-            color: roseColors[r % roseColors.length],
-            roughness: 0.3,
-            metalness: 0.1
-        });
-
-        for (let p = 0; p < 8; p++) {
-            const pMesh = new THREE.Mesh(rosePetalGeo, rMat);
-            pMesh.rotation.y = (p / 8) * Math.PI * 2;
-            pMesh.rotation.x = 0.4;
-            rose.add(pMesh);
-        }
-        bouquetGroup.add(rose);
-    }
+    bouquetGroup = buildBeautifulBouquetGroup();
+    bouquetGroup.position.set(8, 2, 0);
+    bouquetGroup.scale.set(0.8, 0.8, 0.8);
     bouquetGroup.visible = false;
     giftBoxGroup.add(bouquetGroup);
 
