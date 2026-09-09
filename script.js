@@ -703,7 +703,6 @@ function handlePointer(e) {
         for (let i = 0; i < 3; i++) {
             sparkles.push(new Sparkle(x, y));
         }
-        playSparkleSoundEffect();
     }
 }
 
@@ -2166,15 +2165,13 @@ function animate(timestamp) {
     if (!startTime) startTime = timestamp;
     const elapsed = (timestamp - startTime) / 1000;
 
-    // Clear 2D canvas appropriately & keep shooting stars in background
+    // Clear 2D canvas appropriately; meteor shower plays ONLY during initial 2D sequence (elapsed <= 16.0)
     if (elapsed > 16.0) {
         ctx2d.clearRect(0, 0, width, height);
-        // Shooting stars during 3D space travel
-        updateAndDrawMeteors(ctx2d, width, height);
     } else {
         ctx2d.fillStyle = 'rgba(0, 0, 0, 0.18)';
         ctx2d.fillRect(0, 0, width, height);
-        // Draw meteor shower in background during initial sequence
+        // Draw meteor shower in background ONLY during initial sequence
         updateAndDrawMeteors(ctx2d, width, height);
     }
 
