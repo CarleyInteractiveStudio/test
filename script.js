@@ -40,6 +40,12 @@ function initWebAudio() {
         synthGainNode.connect(audioCtx.destination);
         isAudioActive = true;
     }
+
+    const bgAudio = document.getElementById('bg-romantic-audio');
+    if (bgAudio) {
+        bgAudio.volume = 0.5;
+        bgAudio.play().catch(e => console.warn('Audio play blocked until click:', e));
+    }
 }
 
 function playRomanticChord(notes, duration = 4.0) {
@@ -108,6 +114,128 @@ function playBoxUnpackSoundEffect() {
         osc.start(now + idx * 0.12);
         osc.stop(now + idx * 0.12 + 0.8);
     });
+}
+
+function playChampagnePopSound() {
+    if (!audioCtx || !isAudioActive) return;
+    const now = audioCtx.currentTime;
+
+    // Pop sound (short noise burst)
+    const bufferSize = audioCtx.sampleRate * 0.1;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800, now);
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(synthGainNode);
+
+    noise.start(now);
+
+    // Fizz chime notes
+    [1200, 1500, 1800, 2200].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const fGain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + 0.05 + idx * 0.05);
+        fGain.gain.setValueAtTime(0.03, now + 0.05 + idx * 0.05);
+        fGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+        osc.connect(fGain);
+        fGain.connect(synthGainNode);
+        osc.start(now + 0.05 + idx * 0.05);
+        osc.stop(now + 0.4);
+    });
+}
+
+function playBirthdayFanfareSound() {
+    if (!audioCtx || !isAudioActive) return;
+    const now = audioCtx.currentTime;
+    // Celebration melody: C4, E4, G4, C5 arpeggio with warm harmonics
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+
+    notes.forEach((f, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, now + idx * 0.15);
+
+        gain.gain.setValueAtTime(0, now + idx * 0.15);
+        gain.gain.linearRampToValueAtTime(0.1, now + idx * 0.15 + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.15 + 1.2);
+
+        osc.connect(gain);
+        gain.connect(synthGainNode);
+
+        osc.start(now + idx * 0.15);
+        osc.stop(now + idx * 0.15 + 1.2);
+    });
+}
+
+function playPaperSlideSound() {
+    if (!audioCtx || !isAudioActive) return;
+    const now = audioCtx.currentTime;
+
+    const osc = audioCtx.createOscillator();
+    const filter = audioCtx.createBiquadFilter();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.exponentialRampToValueAtTime(150, now + 0.35);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(400, now);
+
+    gain.gain.setValueAtTime(0.04, now);
+    gain.gain.linearRampToValueAtTime(0, now + 0.35);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(synthGainNode);
+
+    osc.start(now);
+    osc.stop(now + 0.35);
+}
+
+function playCosmicWhooshSound() {
+    if (!audioCtx || !isAudioActive) return;
+    const now = audioCtx.currentTime;
+
+    const osc = audioCtx.createOscillator();
+    const filter = audioCtx.createBiquadFilter();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(450, now + 0.8);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 1.6);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(600, now);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.6);
+    gain.gain.linearRampToValueAtTime(0, now + 1.6);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(synthGainNode);
+
+    osc.start(now);
+    osc.stop(now + 1.6);
 }
 
 function playCosmicDrone(freq, duration = 6.0) {
@@ -2206,6 +2334,9 @@ function animate(timestamp) {
         else if (time3D <= 186.0) currentActiveScene = 7; // Infinity 3D ("porque mi amor para ella es infinito")
         else currentActiveScene = 8;                      // Grand Finale
 
+        // Track audio triggers for sequential milestone sound effects
+        if (!window.audioTriggers) window.audioTriggers = {};
+
         // --- Stage 0: 3D Gift Box Sequential Unpacking Cinematics (0s - 18s) ---
         if (currentActiveScene === 0) {
             if (giftBoxGroup) giftBoxGroup.visible = true;
@@ -2226,6 +2357,11 @@ function animate(timestamp) {
                     champagneGroup.position.y = 2 + riseHeight;
                     champagneGroup.position.x = -12 * cPhase;
                     champagneGroup.position.z = 4 * cPhase;
+
+                    if (!window.audioTriggers.champagne) {
+                        window.audioTriggers.champagne = true;
+                        playChampagnePopSound();
+                    }
                 }
             }
 
@@ -2238,6 +2374,11 @@ function animate(timestamp) {
                     cakeGroup.position.y = 1 + riseHeight;
                     cakeGroup.position.x = 0;
                     cakeGroup.position.z = 10 * kPhase;
+
+                    if (!window.audioTriggers.cake) {
+                        window.audioTriggers.cake = true;
+                        playBirthdayFanfareSound();
+                    }
                 }
             }
 
@@ -2266,6 +2407,11 @@ function animate(timestamp) {
                     const flapMesh = envelopeGroup.getObjectByName("envelopeFlap");
                     if (flapMesh && ePhase > 0.5) {
                         flapMesh.rotation.x = Math.PI * (ePhase - 0.5) * 1.5;
+
+                        if (!window.audioTriggers.envelope) {
+                            window.audioTriggers.envelope = true;
+                            playPaperSlideSound();
+                        }
                     }
                 } else {
                     envelopeGroup.visible = false;
