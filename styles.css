@@ -13,6 +13,79 @@ html, body {
     color: #ffffff;
 }
 
+/* Mobile Orientation Prompt Overlay */
+#orientation-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(10, 2, 15, 0.96);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 25px;
+    backdrop-filter: blur(8px);
+}
+
+.orientation-content {
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.rotate-phone-icon {
+    width: 48px;
+    height: 72px;
+    border: 3px solid #ff3388;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    position: relative;
+    animation: rotatePhone 2.5s ease-in-out infinite;
+}
+
+.rotate-phone-icon::after {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    border: 2px solid #ff3388;
+    border-radius: 50%;
+}
+
+@keyframes rotatePhone {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+}
+
+.orientation-content h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.35rem;
+    line-height: 1.4;
+    color: #ff3388;
+    margin: 0;
+}
+
+.orientation-content p {
+    font-size: 0.95rem;
+    color: #e0d0f0;
+    line-height: 1.5;
+}
+
+/* Show orientation overlay ONLY on portrait mobile screens */
+@media screen and (max-width: 850px) and (orientation: portrait) {
+    #orientation-overlay {
+        display: flex;
+    }
+}
+
 /* Preloader Styling */
 #loader-overlay {
     position: fixed;
@@ -248,5 +321,27 @@ html, body {
     #caption-container {
         padding: 15px 20px;
         bottom: 5%;
+    }
+    #letter-sheet-container {
+        width: 310px;
+        height: 420px;
+        padding: 16px;
+        bottom: 3%;
+        right: 3%;
+    }
+    .paper-header {
+        font-size: 1.7rem;
+        margin-bottom: 8px;
+    }
+    .credit-paragraph {
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+    .loader-title {
+        font-size: 2.8rem;
+    }
+    .start-button {
+        padding: 10px 22px;
+        font-size: 0.95rem;
     }
 }

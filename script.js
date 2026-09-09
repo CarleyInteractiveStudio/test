@@ -721,8 +721,9 @@ const startPointer = (e) => {
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
 
-    // Check if dragging letter container
-    if (letterSheetContainer && letterSheetContainer.contains(e.target)) {
+    // Check if dragging letter container header
+    const paperHeader = document.querySelector('.paper-header');
+    if (letterSheetContainer && paperHeader && paperHeader.contains(e.target)) {
         isDraggingLetter = true;
         dragStartX = clientX;
         dragStartY = clientY;
