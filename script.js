@@ -1,3 +1,104 @@
+// --- MULTILINGUAL TRANSLATIONS (ESPANOL / PORTUGUES) & AUTO LANGUAGE DETECTION ---
+const translations = {
+    es: {
+        title: "Para Ana",
+        loaderStatus: "Cargando experiencia...",
+        loaderReady: "¡Todo listo para Ana!",
+        startBtn: "Comenzar Experiencia",
+        orientTitle: "Por favor, gira tu celular",
+        orientText: "Gira la pantalla en modo horizontal para disfrutar al máximo de esta experiencia mágica.",
+        paperHeader: "Para Ana",
+        paragraph1: "Hace exactamente 504,921,600 segundos, 8,415,360 minutos, 140,256 horas, 5,844 días, 192 meses, o sea 16 años en el planeta Tierra, una criatura cuya hermosura no tiene comparación nació y vio la luz en la Tierra...<br><br>Aquella criatura de sexo femenino fue nombrada Ana Clara, pues ella fue la encarnación de la belleza misma en persona. Ella posee una voz con que convierte cada una de sus frases en hermosas melodías...",
+        paragraph2: "...su hermosa sonrisa brilla más que la Luna...",
+        paragraph3: "...su mirada atractiva alimenta de energía nuestra estrella...",
+        paragraph4: "...y si comparamos nuestro sistema solar...",
+        paragraph5: "...o si pongamos el universo entero con todas las galaxias o todos los multiversos...",
+        paragraph6: "Tampoco así ni siquiera el mejor poeta podría describir la grandeza de semejante hermosura, aquella hermosura que tan solo un ser supremo podría otorgar...<br><br>Aquella hermosura que con verla podemos decir existe un Creador, una mente que va más allá de lo que podemos entender.<br><br>Sí, Dios, la esencia de Dios se refleja en aquella criatura de la cual no puedo apartar mi mirada...",
+        paragraph7: "...pues para ella yo sería el loco que entraría y saldría de un agujero negro...",
+        paragraph8: "...porque mi amor para ella es...<br><br><strong style=\"font-size: 1.5rem; color: #8b0020;\">INFINITO</strong><br><br>Desde lo más profundo de mi corazón, amada mía, te deseo el mejor cumpleaños de todo el universo. Este no es un día cualquiera, este es tu día. Que Dios te bendiga, te guarde y te proteja, y te llene de sabiduría y muchos más años de vida, que tu sonrisa nunca acabe.<br><br><strong>Tu amado, John Carley</strong>"
+    },
+    pt: {
+        title: "Para Ana",
+        loaderStatus: "Carregando experiência...",
+        loaderReady: "Tudo pronto para a Ana!",
+        startBtn: "Começar Experiência",
+        orientTitle: "Por favor, gire o seu celular",
+        orientText: "Gire a tela para o modo horizontal para aproveitar ao máximo esta experiência mágica.",
+        paperHeader: "Para Ana",
+        paragraph1: "Há exatamente 504.921.600 segundos, 8.415.360 minutos, 140.256 horas, 5.844 dias, 192 meses, ou seja 16 anos no planeta Terra, uma criatura cuja beleza não tem comparação nasceu e viu a luz na Terra...<br><br>Aquela criatura do sexo feminino foi chamada Ana Clara, pois ela foi a encarnação da própria beleza em pessoa. Ela possui uma voz com a qual transforma cada uma de suas frases em belas melodias...",
+        paragraph2: "...seu lindo sorriso brilha mais que a Lua...",
+        paragraph3: "...seu olhar atraente alimenta de energia a nossa estrela...",
+        paragraph4: "...e se compararmos o nosso sistema solar...",
+        paragraph5: "...ou se colocarmos o universo inteiro com todas as galáxias ou todos os multiversos...",
+        paragraph6: "Nem mesmo o melhor poeta poderia descrever a grandeza de tamanha beleza, aquela beleza que apenas um ser supremo poderia conceder...<br><br>Aquela beleza que ao vê-la podemos dizer que existe um Criador, uma mente que vai além do que podemos entender.<br><br>Sim, Deus, a essência de Deus se reflete naquela criatura da qual não consigo tirar os meus olhos...",
+        paragraph7: "...pois por ela eu seria o louco que entraria e sairia de um buraco negro...",
+        paragraph8: "...porque o meu amor por ela é...<br><br><strong style=\"font-size: 1.5rem; color: #8b0020;\">INFINITO</strong><br><br>Do mais profundo do meu coração, minha amada, desejo-lhe o melhor aniversário de todo o universo. Este não é um dia qualquer, este é o seu dia. Que Deus a abençoe, a guarde e a proteja, e a encha de sabedoria e muitos mais anos de vida, que o seu sorriso nunca acabe.<br><br><strong>Seu amado, John Carley</strong>"
+    }
+};
+
+function applyLanguage() {
+    const userLangs = navigator.languages || [navigator.language || 'es'];
+    let lang = 'es';
+
+    for (let l of userLangs) {
+        if (l.toLowerCase().startsWith('pt')) {
+            lang = 'pt';
+            break;
+        }
+    }
+
+    const dict = translations[lang];
+
+    // Preloader & Header DOM updates
+    const loaderTitle = document.querySelector('.loader-title');
+    if (loaderTitle) loaderTitle.textContent = dict.title;
+
+    const loaderStatusEl = document.getElementById('loader-status');
+    if (loaderStatusEl && loaderStatusEl.textContent.includes('Cargando')) {
+        loaderStatusEl.textContent = dict.loaderStatus;
+    }
+
+    const startBtnEl = document.getElementById('start-btn');
+    if (startBtnEl) startBtnEl.textContent = dict.startBtn;
+
+    const orientTitleEl = document.querySelector('#orientation-overlay h2');
+    if (orientTitleEl) orientTitleEl.textContent = dict.orientTitle;
+
+    const orientTextEl = document.querySelector('#orientation-overlay p');
+    if (orientTextEl) orientTextEl.textContent = dict.orientText;
+
+    const paperHeaderEl = document.querySelector('.paper-header');
+    if (paperHeaderEl) paperHeaderEl.textContent = dict.paperHeader;
+
+    // Letter Paragraphs updates
+    const p1 = document.querySelector('[data-scene="earth"]');
+    if (p1) p1.innerHTML = dict.paragraph1;
+
+    const p2 = document.querySelector('[data-scene="moon"]');
+    if (p2) p2.innerHTML = dict.paragraph2;
+
+    const p3 = document.querySelector('[data-scene="sun"]');
+    if (p3) p3.innerHTML = dict.paragraph3;
+
+    const p4 = document.querySelector('[data-scene="solar_system"]');
+    if (p4) p4.innerHTML = dict.paragraph4;
+
+    const p5 = document.querySelector('[data-scene="universe"]');
+    if (p5) p5.innerHTML = dict.paragraph5;
+
+    const p6 = document.querySelector('[data-scene="poet"]');
+    if (p6) p6.innerHTML = dict.paragraph6;
+
+    const p7 = document.querySelector('[data-scene="black_hole"]');
+    if (p7) p7.innerHTML = dict.paragraph7;
+
+    const p8 = document.querySelector('[data-scene="infinity"]');
+    if (p8) p8.innerHTML = dict.paragraph8;
+}
+
+document.addEventListener('DOMContentLoaded', applyLanguage);
+applyLanguage();
+
 // --- Preloader, Audio & Setup ---
 const canvas2d = document.getElementById('canvas2d');
 const ctx2d = canvas2d.getContext('2d');
