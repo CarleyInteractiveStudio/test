@@ -316,35 +316,42 @@ html, body {
 
 @media (max-width: 768px) {
     #caption-text {
-        font-size: 1.1rem;
+        font-size: 1.0rem;
         letter-spacing: 1px;
     }
     #caption-container {
-        padding: 15px 20px;
-        bottom: 5%;
+        padding: 10px 15px;
+        bottom: 3%;
     }
     #letter-sheet-container {
-        width: 280px;
-        height: 360px;
-        padding: 12px;
+        width: min(230px, 42vw);
+        height: min(260px, 55vh);
+        padding: 8px;
         bottom: 10px;
         right: 10px;
-        max-width: calc(100vw - 20px);
-        max-height: calc(100vh - 20px);
+        background: rgba(253, 247, 231, 0.82);
+        backdrop-filter: blur(6px);
+        border: 1px solid rgba(212, 175, 55, 0.6);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+    .paper-inner-frame {
+        padding: 6px;
     }
     .paper-header {
-        font-size: 1.7rem;
-        margin-bottom: 8px;
+        font-size: 1.35rem;
+        padding-bottom: 4px;
+        margin-bottom: 6px;
     }
     .credit-paragraph {
-        font-size: 0.9rem;
-        line-height: 1.6;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        margin-bottom: 80px;
     }
     .loader-title {
-        font-size: 2.8rem;
+        font-size: 2.5rem;
     }
     .start-button {
-        padding: 10px 22px;
-        font-size: 0.95rem;
+        padding: 10px 20px;
+        font-size: 0.9rem;
     }
 }
